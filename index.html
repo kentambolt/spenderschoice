@@ -1,1 +1,437 @@
-Check back soon
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#0F1B26" />
+  <meta name="description" content="SpendersChoice — silos, recurring rules and a forecast you can trust." />
+  <title>SpendersChoice</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+  <link rel="apple-touch-icon" href="favicon.svg" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+<!-- ============ APP SHELL ============ -->
+<div id="app" class="app" hidden>
+  <header class="topbar">
+    <div class="brand">
+      <img src="logo.svg" alt="" class="brand-logo" aria-hidden="true" />
+      <h1 class="brand-name">SpendersChoice</h1>
+    </div>
+    <button id="menuBtn" class="icon-btn" aria-label="Settings" title="Settings">
+      <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path fill="currentColor" d="M3 6h18v2H3zM3 11h18v2H3zM3 16h18v2H3z"/></svg>
+    </button>
+  </header>
+
+  <main class="main">
+    <nav class="tabs" role="tablist">
+      <button class="tab is-active" data-tab="silos"    role="tab" data-i18n="tab.silos">Silos</button>
+      <button class="tab"           data-tab="forecast" role="tab" data-i18n="tab.forecast">Forecast</button>
+      <button class="tab"           data-tab="rules"    role="tab" data-i18n="tab.rules">Rules</button>
+      <button class="tab"           data-tab="history"  role="tab" data-i18n="tab.history">History</button>
+      <button class="tab"           data-tab="stats"    role="tab" data-i18n="tab.stats">Stats</button>
+    </nav>
+
+    <section id="view" class="pane" aria-live="polite"></section>
+
+    <div id="emptyState" class="empty" hidden>
+      <img src="logo.svg" alt="" class="empty-logo" aria-hidden="true" />
+      <h2 data-i18n="empty.title">Nothing here yet</h2>
+      <p data-i18n="empty.body">Get started by creating your first silo.</p>
+      <button class="btn btn-primary" id="emptyCta" data-i18n="empty.cta">Add a silo</button>
+    </div>
+  </main>
+
+  <button id="addBtn" class="fab" aria-label="Add" title="Add">
+    <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path fill="currentColor" d="M11 5h2v14h-2zM5 11h14v2H5z"/></svg>
+  </button>
+</div>
+
+<!-- ============ SILO DETAIL VIEW ============ -->
+<section id="detailView" class="app" hidden>
+  <header class="topbar">
+    <div class="brand">
+      <img src="logo.svg" alt="" class="brand-logo" aria-hidden="true" />
+      <h1 class="brand-name">SpendersChoice</h1>
+    </div>
+    <button id="menuBtn2" class="icon-btn" aria-label="Settings" title="Settings">
+      <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path fill="currentColor" d="M3 6h18v2H3zM3 11h18v2H3zM3 16h18v2H3z"/></svg>
+    </button>
+  </header>
+  <div id="detailBody" class="detail"></div>
+  <button id="detailAddBtn" class="fab" aria-label="Add transaction" title="Add transaction">
+    <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path fill="currentColor" d="M11 5h2v14h-2zM5 11h14v2H5z"/></svg>
+  </button>
+</section>
+
+<!-- ============ ONBOARDING ============ -->
+<div id="onboarding" class="onboard" hidden>
+  <div class="onboard-card">
+    <section class="step is-active" data-step="1">
+      <img src="logo.svg" alt="" class="onboard-logo" />
+      <h1 class="onboard-title">SpendersChoice</h1>
+      <p class="onboard-sub" data-i18n="onboard.welcomeSub">Silos, recurring rules and a forecast you can trust.</p>
+      <button class="btn btn-primary btn-block" data-next data-i18n="onboard.start">Get started</button>
+    </section>
+
+    <section class="step" data-step="2">
+      <h2 class="step-title" data-i18n="onboard.langTitle">Choose your language</h2>
+      <p class="step-sub" data-i18n="onboard.langSub">You can change this any time in Settings.</p>
+      <div class="lang-grid" id="onboardLang"></div>
+      <div class="step-actions">
+        <button class="btn btn-ghost" data-prev data-i18n="back">Back</button>
+        <button class="btn btn-primary" data-next data-i18n="next">Next</button>
+      </div>
+    </section>
+
+    <section class="step" data-step="3">
+      <h2 class="step-title" data-i18n="onboard.currTitle">Your currencies</h2>
+      <p class="step-sub" data-i18n="onboard.currSub">Add any currencies you use. Plain codes — DKK, USD, BTC, anything goes.</p>
+      <div id="onboardCurrencies" class="currency-list"></div>
+      <button class="btn btn-ghost btn-block" id="onboardAddCurrency" data-i18n="currency.add">+ Add currency</button>
+      <div class="step-actions">
+        <button class="btn btn-ghost" data-prev data-i18n="back">Back</button>
+        <button class="btn btn-primary" data-next data-i18n="next">Next</button>
+      </div>
+    </section>
+
+    <section class="step" data-step="4">
+      <h2 class="step-title" data-i18n="onboard.siloTitle">Your first silo</h2>
+      <p class="step-sub" data-i18n="onboard.siloSub">A silo is anywhere you keep money — a bank account, a wallet, a savings jar.</p>
+      <label class="field">
+        <span data-i18n="silo.name">Name</span>
+        <input type="text" id="onboardSiloName" placeholder="Checking" maxlength="40" />
+      </label>
+      <label class="field">
+        <span data-i18n="silo.startingBalance">Starting balance (optional)</span>
+        <div class="balance-edit-row">
+          <input type="number" id="onboardSiloAmt" step="0.01" placeholder="0" />
+          <select id="onboardSiloCcy"></select>
+          <span></span>
+        </div>
+      </label>
+      <div class="step-actions">
+        <button class="btn btn-ghost" data-prev data-i18n="back">Back</button>
+        <button class="btn btn-primary" id="finishOnboarding" data-i18n="onboard.finish">Create silo</button>
+      </div>
+    </section>
+
+    <div class="dots" id="onboardDots"></div>
+  </div>
+</div>
+
+<!-- ============ SETTINGS DRAWER ============ -->
+<aside id="settings" class="drawer" hidden aria-hidden="true">
+  <div class="drawer-scrim" data-close-drawer></div>
+  <div class="drawer-panel" role="dialog" aria-label="Settings">
+    <header class="drawer-head">
+      <h2 data-i18n="settings.title">Settings</h2>
+      <button class="icon-btn" data-close-drawer aria-label="Close">
+        <svg viewBox="0 0 24 24" width="22" height="22"><path fill="currentColor" d="M18.3 5.71 12 12.01l6.3 6.29-1.41 1.41L10.59 13.4 4.29 19.71l-1.41-1.41 6.3-6.29-6.3-6.3L4.29 4.3l6.3 6.29 6.3-6.29z"/></svg>
+      </button>
+    </header>
+
+    <div class="drawer-body">
+      <section class="setting">
+        <h3 data-i18n="settings.language">Language</h3>
+        <div class="lang-grid" id="settingsLang"></div>
+      </section>
+
+      <section class="setting">
+        <h3 data-i18n="settings.currencies">Currencies</h3>
+        <p class="muted small" data-i18n="settings.currenciesHint">Codes are what show on every amount.</p>
+        <div id="settingsCurrencies" class="currency-list"></div>
+        <button class="btn btn-ghost btn-block" id="settingsAddCurrency" data-i18n="currency.add">+ Add currency</button>
+      </section>
+
+      <section class="setting">
+        <h3 data-i18n="settings.categories">Categories</h3>
+        <p class="muted small" data-i18n="settings.categoriesHint">Group transactions like "Rent" or "Groceries".</p>
+        <div id="settingsCategories" class="category-list"></div>
+        <button class="btn btn-ghost btn-block" id="settingsAddCategory" data-i18n="category.add">+ Add category</button>
+      </section>
+
+      <section class="setting">
+        <h3 data-i18n="settings.theme">Appearance</h3>
+        <div class="seg" id="themeSeg">
+          <button data-theme="auto"  data-i18n="theme.auto">Auto</button>
+          <button data-theme="light" data-i18n="theme.light">Light</button>
+          <button data-theme="dark"  data-i18n="theme.dark">Dark</button>
+        </div>
+      </section>
+
+      <section class="setting">
+        <h3 data-i18n="settings.data">Your data</h3>
+        <div class="row-btns">
+          <button class="btn btn-ghost" id="exportBtn" data-i18n="settings.export">Export</button>
+          <button class="btn btn-ghost" id="importBtn" data-i18n="settings.import">Import</button>
+          <button class="btn btn-danger" id="resetBtn" data-i18n="settings.reset">Reset all</button>
+        </div>
+        <input type="file" id="importFile" accept="application/json" hidden />
+      </section>
+
+      <p class="footer-note muted small">SpendersChoice · <span data-i18n="footer.local">Everything stays on your device</span></p>
+    </div>
+  </div>
+</aside>
+
+<!-- ============ SILO MODAL ============ -->
+<div id="siloModal" class="modal" hidden>
+  <div class="modal-scrim" data-close-modal></div>
+  <div class="modal-card" role="dialog" aria-label="Silo">
+    <header class="modal-head">
+      <h2 id="siloModalTitle" data-i18n="silo.new">New silo</h2>
+      <button class="icon-btn" data-close-modal aria-label="Close">
+        <svg viewBox="0 0 24 24" width="22" height="22"><path fill="currentColor" d="M18.3 5.71 12 12.01l6.3 6.29-1.41 1.41L10.59 13.4 4.29 19.71l-1.41-1.41 6.3-6.29-6.3-6.3L4.29 4.3l6.3 6.29 6.3-6.29z"/></svg>
+      </button>
+    </header>
+    <form id="siloForm" class="modal-body">
+      <label class="field">
+        <span data-i18n="silo.name">Name</span>
+        <input type="text" id="siloName" required maxlength="40" placeholder="Checking" />
+      </label>
+
+      <div class="field">
+        <span data-i18n="silo.appearance">Icon &amp; color</span>
+        <div style="display:flex; gap:8px; align-items:center;">
+          <button type="button" id="siloIconBtn" class="icon-pick-btn">＋</button>
+          <input type="color" id="siloColor" value="#14B8A6" style="width:40px; height:40px; padding:0; border:1px solid var(--border); border-radius:10px; background:transparent; cursor:pointer;" />
+        </div>
+      </div>
+
+      <div class="field">
+        <span data-i18n="silo.balances">Balances</span>
+        <div id="siloBalanceRows" class="cat-list"></div>
+        <button type="button" class="btn btn-ghost btn-block" id="addBalanceRow" data-i18n="silo.addBalance">+ Add currency</button>
+      </div>
+
+      <label class="field">
+        <span data-i18n="silo.notes">Notes (optional)</span>
+        <textarea id="siloNotes" rows="2" maxlength="240"></textarea>
+      </label>
+
+      <div class="modal-actions">
+        <button type="button" class="btn btn-danger btn-ghost" id="deleteSiloBtn" hidden data-i18n="silo.delete">Delete</button>
+        <span class="spacer"></span>
+        <button type="button" class="btn btn-ghost" data-close-modal data-i18n="cancel">Cancel</button>
+        <button type="submit" class="btn btn-primary" data-i18n="save">Save</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ============ TRANSACTION MODAL ============ -->
+<div id="txModal" class="modal" hidden>
+  <div class="modal-scrim" data-close-modal></div>
+  <div class="modal-card" role="dialog" aria-label="Transaction">
+    <header class="modal-head">
+      <h2 id="txModalTitle" data-i18n="tx.new">New transaction</h2>
+      <button class="icon-btn" data-close-modal aria-label="Close">
+        <svg viewBox="0 0 24 24" width="22" height="22"><path fill="currentColor" d="M18.3 5.71 12 12.01l6.3 6.29-1.41 1.41L10.59 13.4 4.29 19.71l-1.41-1.41 6.3-6.29-6.3-6.3L4.29 4.3l6.3 6.29 6.3-6.29z"/></svg>
+      </button>
+    </header>
+    <form id="txForm" class="modal-body">
+      <div class="field">
+        <span data-i18n="tx.type">Type</span>
+        <div class="type-seg" id="txTypeSeg">
+          <button type="button" data-type="income"   data-i18n="type.income">Income</button>
+          <button type="button" data-type="expense"  class="is-active" data-i18n="type.expense">Expense</button>
+          <button type="button" data-type="transfer" data-i18n="type.transfer">Transfer</button>
+        </div>
+      </div>
+
+      <label class="field" id="txFromField">
+        <span data-i18n="tx.from">From silo</span>
+        <select id="txFrom"></select>
+      </label>
+
+      <label class="field" id="txToField" hidden>
+        <span data-i18n="tx.to">To silo</span>
+        <select id="txTo"></select>
+      </label>
+
+      <fieldset class="field field-row">
+        <legend data-i18n="tx.amount">Amount</legend>
+        <input type="number" id="txAmount" step="0.01" min="0" required />
+        <select id="txCurrency"></select>
+      </fieldset>
+
+      <label class="field">
+        <span data-i18n="tx.when">When</span>
+        <input type="datetime-local" id="txWhen" />
+      </label>
+
+      <label class="field">
+        <span data-i18n="tx.category">Category (optional)</span>
+        <select id="txCategory">
+          <option value="" data-i18n="tx.noCategory">No category</option>
+        </select>
+      </label>
+
+      <label class="field">
+        <span data-i18n="tx.label">Label (optional)</span>
+        <input type="text" id="txLabel" maxlength="80" placeholder="" />
+      </label>
+
+      <div class="modal-actions">
+        <button type="button" class="btn btn-danger btn-ghost" id="deleteTxBtn" hidden data-i18n="tx.delete">Delete</button>
+        <span class="spacer"></span>
+        <button type="button" class="btn btn-ghost" data-close-modal data-i18n="cancel">Cancel</button>
+        <button type="submit" class="btn btn-primary" data-i18n="save">Save</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ============ RULE MODAL ============ -->
+<div id="ruleModal" class="modal" hidden>
+  <div class="modal-scrim" data-close-modal></div>
+  <div class="modal-card" role="dialog" aria-label="Rule">
+    <header class="modal-head">
+      <h2 id="ruleModalTitle" data-i18n="rule.new">New recurring rule</h2>
+      <button class="icon-btn" data-close-modal aria-label="Close">
+        <svg viewBox="0 0 24 24" width="22" height="22"><path fill="currentColor" d="M18.3 5.71 12 12.01l6.3 6.29-1.41 1.41L10.59 13.4 4.29 19.71l-1.41-1.41 6.3-6.29-6.3-6.3L4.29 4.3l6.3 6.29 6.3-6.29z"/></svg>
+      </button>
+    </header>
+    <form id="ruleForm" class="modal-body">
+      <div class="field">
+        <span data-i18n="tx.type">Type</span>
+        <div class="type-seg" id="ruleTypeSeg">
+          <button type="button" data-type="income"   data-i18n="type.income">Income</button>
+          <button type="button" data-type="expense"  class="is-active" data-i18n="type.expense">Expense</button>
+          <button type="button" data-type="transfer" data-i18n="type.transfer">Transfer</button>
+        </div>
+      </div>
+
+      <label class="field">
+        <span data-i18n="rule.label">Name</span>
+        <input type="text" id="ruleLabel" maxlength="60" placeholder="Rent" />
+      </label>
+
+      <label class="field" id="ruleFromField">
+        <span data-i18n="tx.from">From silo</span>
+        <select id="ruleFrom"></select>
+      </label>
+
+      <label class="field" id="ruleToField" hidden>
+        <span data-i18n="tx.to">To silo</span>
+        <select id="ruleTo"></select>
+      </label>
+
+      <fieldset class="field field-row">
+        <legend data-i18n="tx.amount">Amount</legend>
+        <input type="number" id="ruleAmount" step="0.01" min="0" required />
+        <select id="ruleCurrency"></select>
+      </fieldset>
+
+      <fieldset class="field field-row">
+        <legend data-i18n="rule.every">Repeat every</legend>
+        <input type="number" id="ruleEveryAmount" min="1" step="1" value="1" />
+        <select id="ruleEveryUnit">
+          <option value="minute" data-i18n="unit.minute">minute(s)</option>
+          <option value="hour"   data-i18n="unit.hour">hour(s)</option>
+          <option value="day"    data-i18n="unit.day">day(s)</option>
+          <option value="week"   data-i18n="unit.week">week(s)</option>
+          <option value="month" selected data-i18n="unit.month">month(s)</option>
+          <option value="year"   data-i18n="unit.year">year(s)</option>
+        </select>
+      </fieldset>
+
+      <label class="field">
+        <span data-i18n="rule.startAt">First occurrence</span>
+        <input type="datetime-local" id="ruleStartAt" />
+      </label>
+
+      <label class="field">
+        <span data-i18n="rule.endAt">End date (optional)</span>
+        <input type="datetime-local" id="ruleEndAt" />
+      </label>
+
+      <label class="field">
+        <span data-i18n="tx.category">Category (optional)</span>
+        <select id="ruleCategory">
+          <option value="" data-i18n="tx.noCategory">No category</option>
+        </select>
+      </label>
+
+      <label class="toggle">
+        <input type="checkbox" id="ruleActive" checked />
+        <span class="toggle-slider"></span>
+        <span class="toggle-label" data-i18n="rule.active">Active</span>
+      </label>
+
+      <div class="modal-actions">
+        <button type="button" class="btn btn-danger btn-ghost" id="deleteRuleBtn" hidden data-i18n="rule.delete">Delete</button>
+        <span class="spacer"></span>
+        <button type="button" class="btn btn-ghost" data-close-modal data-i18n="cancel">Cancel</button>
+        <button type="submit" class="btn btn-primary" data-i18n="save">Save</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ============ CONFIRM DIALOG ============ -->
+<div id="confirmDialog" class="modal" hidden>
+  <div class="modal-scrim" data-cancel></div>
+  <div class="modal-card modal-card-sm" role="dialog" aria-label="Confirm">
+    <div class="modal-body">
+      <h3 id="confirmTitle" class="dlg-title"></h3>
+      <p id="confirmBody" class="muted dlg-body"></p>
+      <div class="modal-actions">
+        <span class="spacer"></span>
+        <button type="button" class="btn btn-ghost" data-cancel data-i18n="cancel">Cancel</button>
+        <button type="button" class="btn btn-primary" id="confirmOk" data-i18n="confirm.ok">Confirm</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ ICON PICKER ============ -->
+<div id="iconPicker" class="modal" hidden>
+  <div class="modal-scrim" data-cancel></div>
+  <div class="modal-card modal-card-sm" role="dialog" aria-label="Pick an icon">
+    <div class="modal-body">
+      <h3 class="dlg-title" data-i18n="icon.pick">Pick an icon</h3>
+      <div id="iconGrid" class="icon-grid"></div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" id="iconClear" data-i18n="icon.none">No icon</button>
+        <span class="spacer"></span>
+        <button type="button" class="btn btn-ghost" data-cancel data-i18n="cancel">Cancel</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ ACTION CHOOSER ============ -->
+<div id="chooser" class="modal" hidden>
+  <div class="modal-scrim" data-cancel></div>
+  <div class="modal-card modal-card-sm" role="dialog" aria-label="Add">
+    <div class="modal-body">
+      <h3 class="dlg-title" data-i18n="add.title">What would you like to add?</h3>
+      <div style="display:flex; flex-direction:column; gap:8px; margin: 4px 0 8px;">
+        <button type="button" class="btn btn-secondary" id="chooseSilo" data-i18n="add.silo">＋ Silo</button>
+        <button type="button" class="btn btn-secondary" id="chooseTx"   data-i18n="add.tx">＋ Transaction (one-time)</button>
+        <button type="button" class="btn btn-secondary" id="chooseRule" data-i18n="add.rule">＋ Recurring rule</button>
+      </div>
+      <div class="modal-actions">
+        <span class="spacer"></span>
+        <button type="button" class="btn btn-ghost" data-cancel data-i18n="cancel">Cancel</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ UPDATE BANNER ============ -->
+<div id="updateBanner" class="update-banner" hidden>
+  <span data-i18n="update.available">A new version is available.</span>
+  <button class="btn btn-primary" id="updateReload" data-i18n="update.reload">Reload</button>
+</div>
+
+<!-- ============ TOAST ============ -->
+<div id="toast" class="toast" hidden role="status" aria-live="polite"></div>
+
+<script src="app.js"></script>
+</body>
+</html>

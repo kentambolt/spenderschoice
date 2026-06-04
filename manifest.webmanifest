@@ -1,0 +1,15 @@
+{
+  "name": "SpendersChoice",
+  "short_name": "SpendersChoice",
+  "description": "Simple personal cash-flow: silos, recurring rules and a forecast you can trust.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0F1B26",
+  "theme_color": "#0F1B26",
+  "icons": [
+    { "src": "favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" },
+    { "src": "logo.svg",    "sizes": "any", "type": "image/svg+xml" }
+  ]
+}
