@@ -330,6 +330,13 @@
         <span data-i18n="rule.schedule">Schedule</span>
         <select id="ruleSchedule">
           <option value="interval"      data-i18n="schedule.interval">Custom interval</option>
+          <option value="weeklyMon"     data-i18n="schedule.weeklyMon">Every Monday</option>
+          <option value="weeklyTue"     data-i18n="schedule.weeklyTue">Every Tuesday</option>
+          <option value="weeklyWed"     data-i18n="schedule.weeklyWed">Every Wednesday</option>
+          <option value="weeklyThu"     data-i18n="schedule.weeklyThu">Every Thursday</option>
+          <option value="weeklyFri"     data-i18n="schedule.weeklyFri">Every Friday</option>
+          <option value="weeklySat"     data-i18n="schedule.weeklySat">Every Saturday</option>
+          <option value="weeklySun"     data-i18n="schedule.weeklySun">Every Sunday</option>
           <option value="firstOfMonth"  data-i18n="schedule.firstOfMonth">First day of every month</option>
           <option value="lastOfMonth"   data-i18n="schedule.lastOfMonth">Last day of every month</option>
           <option value="firstOfYear"   data-i18n="schedule.firstOfYear">First day of every year</option>
@@ -350,10 +357,16 @@
         </select>
       </fieldset>
 
-      <label class="field">
+      <label class="field" id="ruleStartAtField">
         <span data-i18n="rule.startAt">First occurrence</span>
         <input type="datetime-local" id="ruleStartAt" />
         <small id="ruleFirstPreview" class="muted small" hidden></small>
+      </label>
+
+      <label class="field" id="ruleTimeField" hidden>
+        <span data-i18n="rule.timeOfDay">Time of day</span>
+        <input type="time" id="ruleTimeOfDay" value="09:00" />
+        <small id="ruleFirstPreview2" class="muted small" hidden></small>
       </label>
 
       <label class="field">

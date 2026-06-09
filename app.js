@@ -104,6 +104,7 @@
       "rule.next":    "next",
       // forecast
       "forecast.title":     "Forecast",
+      "forecast.total":     "All silos",
       "forecast.range.week":  "This week",
       "forecast.range.month": "This month",
       "forecast.range.year":  "This year",
@@ -215,6 +216,14 @@
       "schedule.lastOfMonth":   "Last day of every month",
       "schedule.firstOfYear":   "First day of every year",
       "schedule.lastOfYear":    "Last day of every year",
+      "schedule.weeklyMon":     "Every Monday",
+      "schedule.weeklyTue":     "Every Tuesday",
+      "schedule.weeklyWed":     "Every Wednesday",
+      "schedule.weeklyThu":     "Every Thursday",
+      "schedule.weeklyFri":     "Every Friday",
+      "schedule.weeklySat":     "Every Saturday",
+      "schedule.weeklySun":     "Every Sunday",
+      "rule.timeOfDay":         "Time of day",
     },
 
     da: {
@@ -296,6 +305,7 @@
       "rule.paused":  "Pauset",
       "rule.next":    "næste",
       "forecast.title":     "Prognose",
+      "forecast.total":     "Alle siloer",
       "forecast.range.week":  "Denne uge",
       "forecast.range.month": "Denne måned",
       "forecast.range.year":  "I år",
@@ -391,6 +401,14 @@
       "schedule.lastOfMonth":   "Sidste dag i hver måned",
       "schedule.firstOfYear":   "Første dag hvert år",
       "schedule.lastOfYear":    "Sidste dag hvert år",
+      "schedule.weeklyMon":     "Hver mandag",
+      "schedule.weeklyTue":     "Hver tirsdag",
+      "schedule.weeklyWed":     "Hver onsdag",
+      "schedule.weeklyThu":     "Hver torsdag",
+      "schedule.weeklyFri":     "Hver fredag",
+      "schedule.weeklySat":     "Hver lørdag",
+      "schedule.weeklySun":     "Hver søndag",
+      "rule.timeOfDay":         "Tidspunkt",
     },
   };
 
@@ -483,6 +501,9 @@
     return t("schedule." + s);
   }
 
+  // weeklyMon..weeklySun → day-of-week (Sun = 0, Sat = 6)
+  const WEEKLY_DOW = { weeklySun: 0, weeklyMon: 1, weeklyTue: 2, weeklyWed: 3, weeklyThu: 4, weeklyFri: 5, weeklySat: 6 };
+
   // Snap startAt to the first valid date for the given schedule type.
   function ruleFirstOccurrence(rule) {
     const schedule = rule.schedule || "interval";
@@ -490,6 +511,14 @@
     const s = new Date(rule.startAt);
     const h = s.getHours(), mi = s.getMinutes(), sec = s.getSeconds(), ms = s.getMilliseconds();
     let d;
+    if (WEEKLY_DOW[schedule] !== undefined) {
+      const targetDow = WEEKLY_DOW[schedule];
+      d = new Date(s.getFullYear(), s.getMonth(), s.getDate(), h, mi, sec, ms);
+      const daysAhead = (targetDow - d.getDay() + 7) % 7;
+      d.setDate(d.getDate() + daysAhead);
+      if (d.getTime() < rule.startAt) d.setDate(d.getDate() + 7);
+      return d.getTime();
+    }
     switch (schedule) {
       case "firstOfMonth":
         d = new Date(s.getFullYear(), s.getMonth(), 1, h, mi, sec, ms);
@@ -523,6 +552,11 @@
     const f = new Date(first);
     const h = f.getHours(), mi = f.getMinutes(), sec = f.getSeconds(), ms = f.getMilliseconds();
     let d;
+    if (WEEKLY_DOW[schedule] !== undefined) {
+      d = new Date(f.getFullYear(), f.getMonth(), f.getDate(), h, mi, sec, ms);
+      d.setDate(d.getDate() + 7 * n);  // setDate is DST-safe for local hour
+      return d.getTime();
+    }
     switch (schedule) {
       case "firstOfMonth":
         d = new Date(f.getFullYear(), f.getMonth() + n, 1, h, mi, sec, ms); break;
@@ -622,7 +656,7 @@
   const defaultState = () => {
     const lang = (navigator.language || "en").toLowerCase().startsWith("da") ? "da" : "en";
     return {
-      schemaVersion: 1,
+      schemaVersion: 2,
       onboardingDone: false,
       settings: { lang, theme: "auto" },
       currencies: defaultCurrencies(lang),
@@ -637,9 +671,27 @@
     };
   };
 
+  // Compute how many occurrences have already happened given rule.lastRunAt.
+  // For exact units (minute/hour/day/week) there's no drift, so we compare
+  // strictly against lastRunAt. For month/year we add an approximate buffer
+  // so any drifted-but-already-applied occurrence from older code doesn't get
+  // re-applied.
+  function deriveOccurrenceCount(r) {
+    if (!r.lastRunAt) return 0;
+    const sched = r.schedule || "interval";
+    let cutoff = r.lastRunAt;
+    if (sched === "interval" && !UNIT_MS[r.every?.unit]) {
+      if (r.every?.unit === "month") cutoff += (r.every?.amount || 1) * 30  * UNIT_MS.day;
+      if (r.every?.unit === "year")  cutoff += (r.every?.amount || 1) * 365 * UNIT_MS.day;
+    }
+    let n = 0, safety = 0;
+    while (safety++ < SAFETY_ITERATIONS && nthOccurrence(r, n) <= cutoff) n++;
+    return n;
+  }
+
   function migrate(loaded) {
     if (!loaded) return null;
-    loaded.schemaVersion = loaded.schemaVersion || 1;
+    const fromVersion = loaded.schemaVersion || 1;
     loaded.settings ||= { lang: "en", theme: "auto" };
     loaded.settings.lang ||= "en";
     loaded.settings.theme ||= "auto";
@@ -657,26 +709,20 @@
     loaded.rules.forEach(r => {
       if (r.active === undefined) r.active = true;
       if (r.schedule == null) r.schedule = "interval";
-      if (r.occurrenceCount == null) {
-        if (r.lastRunAt == null) {
-          r.occurrenceCount = 0;
-        } else {
-          // Skip past everything up to one full interval beyond lastRunAt so
-          // we don't re-apply an occurrence that the old (buggy) iterator
-          // already produced under a drifted date.
-          const approxMs = (() => {
-            if (UNIT_MS[r.every?.unit]) return (r.every?.amount || 1) * UNIT_MS[r.every.unit];
-            if (r.every?.unit === "month") return (r.every?.amount || 1) * 30 * UNIT_MS.day;
-            if (r.every?.unit === "year")  return (r.every?.amount || 1) * 365 * UNIT_MS.day;
-            return 30 * UNIT_MS.day;
-          })();
-          const cutoff = r.lastRunAt + approxMs;
-          let n = 0, safety = 0;
-          while (safety++ < SAFETY_ITERATIONS && nthOccurrence(r, n) <= cutoff) n++;
-          r.occurrenceCount = n;
-        }
-      }
+      if (r.occurrenceCount == null) r.occurrenceCount = deriveOccurrenceCount(r);
     });
+    // v1 → v2: previous migration over-skipped a future occurrence for rules
+    // with non-drifting units (week/day/hour/minute) because it always added a
+    // "one full interval" buffer. Re-derive those specifically.
+    if (fromVersion < 2) {
+      loaded.rules.forEach(r => {
+        const sched = r.schedule || "interval";
+        if (r.lastRunAt && sched === "interval" && UNIT_MS[r.every?.unit]) {
+          r.occurrenceCount = deriveOccurrenceCount(r);
+        }
+      });
+    }
+    loaded.schemaVersion = 2;
     return loaded;
   }
 
@@ -1506,10 +1552,15 @@
     fillRuleCurrencyOptions(rule?.currency);
     $("#ruleLabel").value      = rule?.label || "";
     $("#ruleAmount").value     = rule?.amount ?? "";
-    $("#ruleSchedule").value   = rule?.schedule || "interval";
+    const sched = rule?.schedule || "interval";
+    $("#ruleSchedule").value   = sched;
     $("#ruleEveryAmount").value = rule?.every?.amount ?? 1;
     $("#ruleEveryUnit").value   = rule?.every?.unit   ?? "month";
-    $("#ruleStartAt").value     = toLocalInputValue(rule?.startAt ?? Date.now());
+    const baseTs = rule?.startAt ?? Date.now();
+    $("#ruleStartAt").value     = toLocalInputValue(baseTs);
+    const baseDate = new Date(baseTs);
+    const pad = n => String(n).padStart(2, "0");
+    $("#ruleTimeOfDay").value   = `${pad(baseDate.getHours())}:${pad(baseDate.getMinutes())}`;
     $("#ruleEndAt").value       = rule?.endAt ? toLocalInputValue(rule.endAt) : "";
     $("#ruleCategory").value    = rule?.categoryId || "";
     $("#ruleActive").checked    = rule ? !!rule.active : true;
@@ -1518,22 +1569,40 @@
     $("#ruleModal").hidden = false;
     setTimeout(() => $("#ruleLabel").focus(), 60);
   }
+  // Compose a startAt timestamp from the form, choosing the date+time picker
+  // for interval mode and time-only (today) for everything else.
+  function ruleFormStartAt() {
+    const sched = $("#ruleSchedule").value || "interval";
+    if (sched === "interval") return fromLocalInputValue($("#ruleStartAt").value) || Date.now();
+    const time = $("#ruleTimeOfDay").value || "09:00";
+    const [hh, mm] = time.split(":").map(n => parseInt(n, 10));
+    const d = new Date();
+    d.setHours(isNaN(hh) ? 9 : hh, isNaN(mm) ? 0 : mm, 0, 0);
+    return d.getTime();
+  }
   function updateRuleScheduleUI() {
     const sched = $("#ruleSchedule").value || "interval";
-    $("#ruleEveryField").hidden = (sched !== "interval");
-    // Compute first-occurrence preview from current form values.
-    const startAt = fromLocalInputValue($("#ruleStartAt").value) || Date.now();
+    const isInterval = sched === "interval";
+    $("#ruleEveryField").hidden    = !isInterval;
+    $("#ruleStartAtField").hidden  = !isInterval;
+    $("#ruleTimeField").hidden     = isInterval;
+
+    const startAt = ruleFormStartAt();
     const everyAmt = Math.max(1, parseInt($("#ruleEveryAmount").value, 10) || 1);
     const everyUnit = $("#ruleEveryUnit").value || "month";
     const tempRule = { schedule: sched, startAt, every: { amount: everyAmt, unit: everyUnit } };
     const first = ruleFirstOccurrence(tempRule);
-    const previewEl = $("#ruleFirstPreview");
-    if (sched === "interval") {
-      previewEl.textContent = "";
-      previewEl.hidden = true;
+    const previewText = t("rule.firstWillBe", { date: fmtDateTime(first) });
+    const previewEl1 = $("#ruleFirstPreview");
+    const previewEl2 = $("#ruleFirstPreview2");
+    if (isInterval) {
+      previewEl1.textContent = "";
+      previewEl1.hidden = true;
+      previewEl2.hidden = true;
     } else {
-      previewEl.hidden = false;
-      previewEl.textContent = t("rule.firstWillBe", { date: fmtDateTime(first) });
+      previewEl1.hidden = true;
+      previewEl2.hidden = false;
+      previewEl2.textContent = previewText;
     }
   }
   function closeRuleModal() {
@@ -1577,6 +1646,7 @@
     $$("#ruleTypeSeg button").forEach(b => b.onclick = () => { ruleType = b.dataset.type; updateRuleTypeUI(); });
     $("#ruleSchedule").addEventListener("change", updateRuleScheduleUI);
     $("#ruleStartAt").addEventListener("input", updateRuleScheduleUI);
+    $("#ruleTimeOfDay").addEventListener("input", updateRuleScheduleUI);
     $("#ruleEveryAmount").addEventListener("input", updateRuleScheduleUI);
     $("#ruleEveryUnit").addEventListener("change", updateRuleScheduleUI);
 
@@ -1588,7 +1658,7 @@
       const schedule = $("#ruleSchedule").value || "interval";
       const everyAmt = Math.max(1, parseInt($("#ruleEveryAmount").value, 10) || 1);
       const everyUnit = $("#ruleEveryUnit").value;
-      const startAt = fromLocalInputValue($("#ruleStartAt").value) || Date.now();
+      const startAt = ruleFormStartAt();
       const endAt = fromLocalInputValue($("#ruleEndAt").value) || null;
       const categoryId = $("#ruleCategory").value || null;
       const label = $("#ruleLabel").value.trim();
@@ -1855,7 +1925,85 @@
       return showEmpty(view, "empty.forecastTitle", "empty.forecastBody", "empty.cta", () => openSiloModal());
     }
     view.appendChild(renderRangePicker());
+    view.appendChild(renderForecastTotalCard());
     state.silos.forEach(silo => view.appendChild(renderForecastCard(silo)));
+  }
+  // Aggregates each silo's forecast into a combined view. Internal transfers
+  // (between two of the user's silos) net out for in/out flow because the
+  // money never leaves the household.
+  function forecastTotals(target) {
+    const now = Date.now();
+    const nowByCcy = {};
+    const projByCcy = {};
+    const flowByCcy = {};
+    const events = [];
+    state.silos.forEach(silo => {
+      const fc = forecastSilo(silo.id, target);
+      for (const ccy in fc.now)       nowByCcy[ccy]  = (nowByCcy[ccy]  || 0) + fc.now[ccy];
+      for (const ccy in fc.projected) projByCcy[ccy] = (projByCcy[ccy] || 0) + fc.projected[ccy];
+      fc.events.forEach(ev => {
+        if (ev.type !== "transfer") {
+          for (const ccy in ev.delta) {
+            flowByCcy[ccy] ||= { in: 0, out: 0 };
+            if (ev.delta[ccy] > 0) flowByCcy[ccy].in  += ev.delta[ccy];
+            else                   flowByCcy[ccy].out += -ev.delta[ccy];
+          }
+        }
+        events.push(ev);
+      });
+    });
+    events.sort((a, b) => a.at - b.at);
+    return { now: nowByCcy, projected: projByCcy, perCurrencyFlow: flowByCcy, events, atNow: now, targetTs: target };
+  }
+  function renderForecastTotalCard() {
+    const target = rangeTargetTs(state.forecastRange, state.forecastCustom);
+    const fc = forecastTotals(target);
+    const now = Date.now();
+    const days = daysBetween(now, target);
+
+    const card = el("div", { class: "forecast-card forecast-card-total", style: { "--cat-color": "var(--brand-2)" } });
+    card.appendChild(el("div", { class: "forecast-head" },
+      el("div", { style: { display: "flex", alignItems: "center", gap: "10px" } },
+        el("span", { class: "silo-icon", style: { width: "30px", height: "30px", fontSize: "16px" } }, "Σ"),
+        el("div", { class: "forecast-title" }, t("forecast.total"))
+      ),
+      el("div", { class: "forecast-sub" }, t("stats.siloCount", { n: state.silos.length }) + " · " + fmtDate(now) + " → " + fmtDate(target))
+    ));
+
+    const tiles = el("div", { class: "forecast-summary" });
+    const codes = Array.from(new Set([...Object.keys(fc.now), ...Object.keys(fc.projected)]));
+    if (codes.length === 0) codes.push(state.currencies[0]?.code || "");
+    codes.forEach(ccy => {
+      const cur = fc.now[ccy] || 0;
+      const proj = fc.projected[ccy] || 0;
+      const flow = fc.perCurrencyFlow[ccy] || { in: 0, out: 0 };
+      tiles.appendChild(el("div", { class: "forecast-tile" },
+        el("span", { class: "label" }, ccy + " · " + t("forecast.current")),
+        el("span", { class: "value" + (cur < 0 ? " is-negative" : "") }, fmtAmount(cur)),
+      ));
+      tiles.appendChild(el("div", { class: "forecast-tile" },
+        el("span", { class: "label" }, ccy + " · " + t("forecast.projected")),
+        el("span", { class: "value" + (proj < 0 ? " is-negative" : "") }, fmtAmount(proj)),
+        el("span", { class: "sub" }, "+" + fmtAmount(flow.in) + " / −" + fmtAmount(flow.out)),
+      ));
+      const allowance = proj / days;
+      tiles.appendChild(el("div", { class: "forecast-tile" },
+        el("span", { class: "label" }, ccy + " · " + t("forecast.allowance")),
+        el("span", { class: "value" + (allowance < 0 ? " is-negative" : "") }, fmtAmount(allowance)),
+        el("span", { class: "sub" }, t("forecast.daysLeft", { n: days })),
+      ));
+    });
+    card.appendChild(tiles);
+
+    const chartCcys = Array.from(new Set([...Object.keys(fc.now), ...Object.keys(fc.projected)]));
+    if (chartCcys.length === 0) chartCcys.push(state.currencies[0]?.code || "");
+    chartCcys.forEach(ccy => {
+      const points = buildBalancePoints(null, ccy, fc, now, target);
+      card.appendChild(el("div", { class: "forecast-chart-wrap" },
+        renderChart(points, ccy, "#14B8A6", "#E5484D")
+      ));
+    });
+    return card;
   }
   function renderRangePicker() {
     const wrap = el("div", { class: "forecast-card" });
@@ -2320,16 +2468,26 @@
 
   // For unique clip-path ids per render.
   let __chartId = 0;
-  // Build the step-line points for a silo+currency from now to target.
-  function buildBalancePoints(siloId, ccy, fc, now, target) {
+  // Build the step-line points for a currency from now to target.
+  // Coalesces events sharing a timestamp so internal transfers (which appear
+  // twice in the aggregated event list, once per side) don't create a spike.
+  function buildBalancePoints(_siloId, ccy, fc, now, target) {
     const events = fc.events.filter(e => e.delta[ccy] !== undefined);
     const points = [];
     let running = fc.now[ccy] || 0;
     points.push({ t: now, v: running });
-    events.forEach(ev => {
-      running += ev.delta[ccy] || 0;
-      points.push({ t: ev.at, v: running });
-    });
+    let i = 0;
+    while (i < events.length) {
+      let j = i, delta = 0;
+      const at = events[i].at;
+      while (j < events.length && events[j].at === at) {
+        delta += events[j].delta[ccy] || 0;
+        j++;
+      }
+      running += delta;
+      points.push({ t: at, v: running });
+      i = j;
+    }
     points.push({ t: target, v: running });
     return points;
   }
