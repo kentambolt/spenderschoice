@@ -207,6 +207,14 @@
       "balance.adjustment":  "Adjustment",
       "balance.note":        "Note (optional)",
       "balance.defaultLabel":"Balance adjustment",
+      // schedule
+      "rule.schedule":          "Schedule",
+      "rule.firstWillBe":       "First occurrence: {date}",
+      "schedule.interval":      "Custom interval",
+      "schedule.firstOfMonth":  "First day of every month",
+      "schedule.lastOfMonth":   "Last day of every month",
+      "schedule.firstOfYear":   "First day of every year",
+      "schedule.lastOfYear":    "Last day of every year",
     },
 
     da: {
@@ -376,6 +384,13 @@
       "balance.adjustment":  "Justering",
       "balance.note":        "Note (valgfri)",
       "balance.defaultLabel":"Saldojustering",
+      "rule.schedule":          "Tidsplan",
+      "rule.firstWillBe":       "Første forekomst: {date}",
+      "schedule.interval":      "Brugerdefineret interval",
+      "schedule.firstOfMonth":  "Første dag i hver måned",
+      "schedule.lastOfMonth":   "Sidste dag i hver måned",
+      "schedule.firstOfYear":   "Første dag hvert år",
+      "schedule.lastOfYear":    "Sidste dag hvert år",
     },
   };
 
@@ -434,15 +449,93 @@
   const $  = (sel, root = document) => root.querySelector(sel);
   const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
 
+  // Adds an interval to a timestamp. For month/year units, clamps the
+  // day-of-month to the last valid day of the target month so Jan 30 + 1 month
+  // becomes Feb 28 (or 29 in leap years), not "Feb 30" overflowing to early March.
   function addInterval(ts, amount, unit) {
     if (UNIT_MS[unit]) return ts + amount * UNIT_MS[unit];
     const d = new Date(ts);
-    if (unit === "month") d.setMonth(d.getMonth() + amount);
-    else if (unit === "year") d.setFullYear(d.getFullYear() + amount);
+    const h = d.getHours(), mi = d.getMinutes(), sec = d.getSeconds(), ms = d.getMilliseconds();
+    const origDay = d.getDate();
+    if (unit === "month") {
+      d.setDate(1);
+      d.setMonth(d.getMonth() + amount);
+      const lastDay = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+      d.setDate(Math.min(origDay, lastDay));
+    } else if (unit === "year") {
+      d.setDate(1);
+      d.setFullYear(d.getFullYear() + amount);
+      const lastDay = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+      d.setDate(Math.min(origDay, lastDay));
+    }
+    d.setHours(h, mi, sec, ms);
     return d.getTime();
+  }
+  function lastDayOfMonth(year, monthIdx) {
+    return new Date(year, monthIdx + 1, 0).getDate();
   }
   function intervalLabel(every) {
     return t("every." + every.unit, { n: every.amount });
+  }
+  function scheduleLabel(rule) {
+    const s = rule.schedule || "interval";
+    if (s === "interval") return intervalLabel(rule.every);
+    return t("schedule." + s);
+  }
+
+  // Snap startAt to the first valid date for the given schedule type.
+  function ruleFirstOccurrence(rule) {
+    const schedule = rule.schedule || "interval";
+    if (schedule === "interval") return rule.startAt;
+    const s = new Date(rule.startAt);
+    const h = s.getHours(), mi = s.getMinutes(), sec = s.getSeconds(), ms = s.getMilliseconds();
+    let d;
+    switch (schedule) {
+      case "firstOfMonth":
+        d = new Date(s.getFullYear(), s.getMonth(), 1, h, mi, sec, ms);
+        if (d.getTime() < rule.startAt) d = new Date(s.getFullYear(), s.getMonth() + 1, 1, h, mi, sec, ms);
+        return d.getTime();
+      case "lastOfMonth":
+        d = new Date(s.getFullYear(), s.getMonth() + 1, 0, h, mi, sec, ms);
+        if (d.getTime() < rule.startAt) d = new Date(s.getFullYear(), s.getMonth() + 2, 0, h, mi, sec, ms);
+        return d.getTime();
+      case "firstOfYear":
+        d = new Date(s.getFullYear(), 0, 1, h, mi, sec, ms);
+        if (d.getTime() < rule.startAt) d = new Date(s.getFullYear() + 1, 0, 1, h, mi, sec, ms);
+        return d.getTime();
+      case "lastOfYear":
+        d = new Date(s.getFullYear(), 11, 31, h, mi, sec, ms);
+        if (d.getTime() < rule.startAt) d = new Date(s.getFullYear() + 1, 11, 31, h, mi, sec, ms);
+        return d.getTime();
+    }
+    return rule.startAt;
+  }
+  // The n-th occurrence of a rule (n=0 is the first).
+  // Anchored at startAt so month/year arithmetic never drifts.
+  function nthOccurrence(rule, n) {
+    const schedule = rule.schedule || "interval";
+    if (schedule === "interval") {
+      if (n === 0) return rule.startAt;
+      return addInterval(rule.startAt, n * rule.every.amount, rule.every.unit);
+    }
+    const first = ruleFirstOccurrence(rule);
+    if (n === 0) return first;
+    const f = new Date(first);
+    const h = f.getHours(), mi = f.getMinutes(), sec = f.getSeconds(), ms = f.getMilliseconds();
+    let d;
+    switch (schedule) {
+      case "firstOfMonth":
+        d = new Date(f.getFullYear(), f.getMonth() + n, 1, h, mi, sec, ms); break;
+      case "lastOfMonth":
+        d = new Date(f.getFullYear(), f.getMonth() + n + 1, 0, h, mi, sec, ms); break;
+      case "firstOfYear":
+        d = new Date(f.getFullYear() + n, 0, 1, h, mi, sec, ms); break;
+      case "lastOfYear":
+        d = new Date(f.getFullYear() + n, 11, 31, h, mi, sec, ms); break;
+      default:
+        return first;
+    }
+    return d.getTime();
   }
 
   function endOfWeek(now) {
@@ -561,7 +654,29 @@
     loaded.detailSiloId ??= null;
     // defensive
     loaded.silos.forEach(s => { s.balances ||= {}; });
-    loaded.rules.forEach(r => { if (r.active === undefined) r.active = true; });
+    loaded.rules.forEach(r => {
+      if (r.active === undefined) r.active = true;
+      if (r.schedule == null) r.schedule = "interval";
+      if (r.occurrenceCount == null) {
+        if (r.lastRunAt == null) {
+          r.occurrenceCount = 0;
+        } else {
+          // Skip past everything up to one full interval beyond lastRunAt so
+          // we don't re-apply an occurrence that the old (buggy) iterator
+          // already produced under a drifted date.
+          const approxMs = (() => {
+            if (UNIT_MS[r.every?.unit]) return (r.every?.amount || 1) * UNIT_MS[r.every.unit];
+            if (r.every?.unit === "month") return (r.every?.amount || 1) * 30 * UNIT_MS.day;
+            if (r.every?.unit === "year")  return (r.every?.amount || 1) * 365 * UNIT_MS.day;
+            return 30 * UNIT_MS.day;
+          })();
+          const cutoff = r.lastRunAt + approxMs;
+          let n = 0, safety = 0;
+          while (safety++ < SAFETY_ITERATIONS && nthOccurrence(r, n) <= cutoff) n++;
+          r.occurrenceCount = n;
+        }
+      }
+    });
     return loaded;
   }
 
@@ -634,22 +749,16 @@
     let any = false;
     state.rules.forEach(rule => {
       if (!rule.active) return;
-      let next;
-      if (rule.lastRunAt) {
-        next = addInterval(rule.lastRunAt, rule.every.amount, rule.every.unit);
-      } else {
-        next = rule.startAt;
-      }
+      let count = rule.occurrenceCount || 0;
+      let next = nthOccurrence(rule, count);
       let safety = 0;
       while (next <= now && (!rule.endAt || next <= rule.endAt)) {
         if (++safety > SAFETY_ITERATIONS) {
-          // Fast-forward to skip massive backlogs.
-          rule.lastRunAt = now;
+          rule.occurrenceCount = count;
           if (!warned) { toast(t("toast.tooMany")); warned = true; }
           return;
         }
         applyOp(rule.type, rule.fromSiloId, rule.toSiloId, rule.amount, rule.currency);
-        // create transaction log
         state.transactions.push({
           id: cryptoId(),
           type: rule.type,
@@ -665,9 +774,11 @@
           createdAt: Date.now(),
         });
         rule.lastRunAt = next;
+        count++;
         any = true;
-        next = addInterval(next, rule.every.amount, rule.every.unit);
+        next = nthOccurrence(rule, count);
       }
+      rule.occurrenceCount = count;
     });
     return any;
   }
@@ -686,22 +797,19 @@
   function futureRuleOccurrences(rule, now, targetTs) {
     const out = [];
     if (!rule.active) return out;
-    let next;
-    if (rule.lastRunAt) {
-      next = addInterval(rule.lastRunAt, rule.every.amount, rule.every.unit);
-    } else {
-      next = rule.startAt;
-    }
-    // Walk forward until > now
+    let count = rule.occurrenceCount || 0;
+    let next = nthOccurrence(rule, count);
     let safety = 0;
     while (next <= now) {
       if (++safety > SAFETY_ITERATIONS) return out;
-      next = addInterval(next, rule.every.amount, rule.every.unit);
+      count++;
+      next = nthOccurrence(rule, count);
     }
     while (next <= targetTs && (!rule.endAt || next <= rule.endAt)) {
       if (++safety > SAFETY_ITERATIONS) break;
       out.push(next);
-      next = addInterval(next, rule.every.amount, rule.every.unit);
+      count++;
+      next = nthOccurrence(rule, count);
     }
     return out;
   }
@@ -1398,6 +1506,7 @@
     fillRuleCurrencyOptions(rule?.currency);
     $("#ruleLabel").value      = rule?.label || "";
     $("#ruleAmount").value     = rule?.amount ?? "";
+    $("#ruleSchedule").value   = rule?.schedule || "interval";
     $("#ruleEveryAmount").value = rule?.every?.amount ?? 1;
     $("#ruleEveryUnit").value   = rule?.every?.unit   ?? "month";
     $("#ruleStartAt").value     = toLocalInputValue(rule?.startAt ?? Date.now());
@@ -1405,8 +1514,27 @@
     $("#ruleCategory").value    = rule?.categoryId || "";
     $("#ruleActive").checked    = rule ? !!rule.active : true;
     $("#deleteRuleBtn").hidden  = !rule;
+    updateRuleScheduleUI();
     $("#ruleModal").hidden = false;
     setTimeout(() => $("#ruleLabel").focus(), 60);
+  }
+  function updateRuleScheduleUI() {
+    const sched = $("#ruleSchedule").value || "interval";
+    $("#ruleEveryField").hidden = (sched !== "interval");
+    // Compute first-occurrence preview from current form values.
+    const startAt = fromLocalInputValue($("#ruleStartAt").value) || Date.now();
+    const everyAmt = Math.max(1, parseInt($("#ruleEveryAmount").value, 10) || 1);
+    const everyUnit = $("#ruleEveryUnit").value || "month";
+    const tempRule = { schedule: sched, startAt, every: { amount: everyAmt, unit: everyUnit } };
+    const first = ruleFirstOccurrence(tempRule);
+    const previewEl = $("#ruleFirstPreview");
+    if (sched === "interval") {
+      previewEl.textContent = "";
+      previewEl.hidden = true;
+    } else {
+      previewEl.hidden = false;
+      previewEl.textContent = t("rule.firstWillBe", { date: fmtDateTime(first) });
+    }
   }
   function closeRuleModal() {
     $("#ruleModal").hidden = true;
@@ -1447,12 +1575,17 @@
   function bindRuleModal() {
     $$("[data-close-modal]", $("#ruleModal")).forEach(b => b.onclick = closeRuleModal);
     $$("#ruleTypeSeg button").forEach(b => b.onclick = () => { ruleType = b.dataset.type; updateRuleTypeUI(); });
+    $("#ruleSchedule").addEventListener("change", updateRuleScheduleUI);
+    $("#ruleStartAt").addEventListener("input", updateRuleScheduleUI);
+    $("#ruleEveryAmount").addEventListener("input", updateRuleScheduleUI);
+    $("#ruleEveryUnit").addEventListener("change", updateRuleScheduleUI);
 
     $("#ruleForm").onsubmit = (e) => {
       e.preventDefault();
       const amount = parseFloat($("#ruleAmount").value);
       if (isNaN(amount) || amount <= 0) return;
       const currency = $("#ruleCurrency").value;
+      const schedule = $("#ruleSchedule").value || "interval";
       const everyAmt = Math.max(1, parseInt($("#ruleEveryAmount").value, 10) || 1);
       const everyUnit = $("#ruleEveryUnit").value;
       const startAt = fromLocalInputValue($("#ruleStartAt").value) || Date.now();
@@ -1470,21 +1603,42 @@
       if (editingRuleId) {
         const r = state.rules.find(x => x.id === editingRuleId);
         if (r) {
+          const scheduleChanged = r.schedule !== schedule
+            || r.startAt !== startAt
+            || (schedule === "interval" && (r.every?.amount !== everyAmt || r.every?.unit !== everyUnit));
           Object.assign(r, {
             type: ruleType, fromSiloId, toSiloId, amount, currency,
+            schedule,
             every: { amount: everyAmt, unit: everyUnit },
             startAt, endAt, categoryId, label, active,
           });
-          // We don't reset lastRunAt; if user wants catch-up they can re-set startAt.
+          // If the schedule itself moved, recompute occurrenceCount from the
+          // last applied transaction so we don't double-apply or skip.
+          if (scheduleChanged) {
+            const lastApplied = state.transactions
+              .filter(tx => tx.ruleId === r.id && tx.status === "applied")
+              .reduce((m, tx) => Math.max(m, tx.at), 0);
+            if (lastApplied) {
+              let n = 0, safety = 0;
+              while (safety++ < SAFETY_ITERATIONS && nthOccurrence(r, n) <= lastApplied) n++;
+              r.occurrenceCount = n;
+              r.lastRunAt = lastApplied;
+            } else {
+              r.occurrenceCount = 0;
+              r.lastRunAt = null;
+            }
+          }
           toast(t("toast.updated"));
         }
       } else {
         state.rules.push({
           id: cryptoId(),
           type: ruleType, fromSiloId, toSiloId, amount, currency,
+          schedule,
           every: { amount: everyAmt, unit: everyUnit },
           startAt, endAt,
           lastRunAt: null,
+          occurrenceCount: 0,
           categoryId, label, active,
           createdAt: Date.now(),
         });
@@ -1779,6 +1933,17 @@
       ));
     });
     card.appendChild(tiles);
+
+    // Per-currency chart (one chart per currency present in this silo)
+    const chartCcys = Array.from(new Set([...Object.keys(fc.now), ...Object.keys(fc.projected)]));
+    if (chartCcys.length === 0) chartCcys.push(state.currencies[0]?.code || "");
+    chartCcys.forEach(ccy => {
+      const points = buildBalancePoints(silo.id, ccy, fc, now, target);
+      card.appendChild(el("div", { class: "forecast-chart-wrap" },
+        renderChart(points, ccy, silo.color || "#14B8A6", "#E5484D")
+      ));
+    });
+
     return card;
   }
 
@@ -1790,8 +1955,8 @@
     // Sort rules: active first, then next occurrence soonest
     const sorted = [...state.rules].sort((a, b) => {
       if (!!a.active !== !!b.active) return a.active ? -1 : 1;
-      const an = a.lastRunAt ? addInterval(a.lastRunAt, a.every.amount, a.every.unit) : a.startAt;
-      const bn = b.lastRunAt ? addInterval(b.lastRunAt, b.every.amount, b.every.unit) : b.startAt;
+      const an = nthOccurrence(a, a.occurrenceCount || 0);
+      const bn = nthOccurrence(b, b.occurrenceCount || 0);
       return an - bn;
     });
     sorted.forEach(rule => view.appendChild(renderRuleRow(rule)));
@@ -1806,12 +1971,12 @@
     body.appendChild(el("div", { class: "row-title" }, title));
 
     const meta = el("div", { class: "row-meta" });
-    meta.appendChild(el("span", {}, intervalLabel(rule.every)));
+    meta.appendChild(el("span", {}, scheduleLabel(rule)));
     if (rule.type === "transfer") meta.appendChild(el("span", {}, "· " + siloName(rule.fromSiloId) + " → " + siloName(rule.toSiloId)));
     else if (rule.type === "income") meta.appendChild(el("span", {}, "· → " + siloName(rule.toSiloId)));
     else meta.appendChild(el("span", {}, "· " + siloName(rule.fromSiloId)));
     // next
-    const next = rule.lastRunAt ? addInterval(rule.lastRunAt, rule.every.amount, rule.every.unit) : rule.startAt;
+    const next = nthOccurrence(rule, rule.occurrenceCount || 0);
     if (next && (!rule.endAt || next <= rule.endAt) && rule.active) {
       meta.appendChild(el("span", {}, "· " + t("rule.next") + " " + fmtDateTime(next)));
     }
@@ -1914,15 +2079,14 @@
 
     // Top tiles
     const grid = el("div", { class: "stats-grid" });
-    grid.appendChild(statTile(t("stats.totalBalance"), prettyMoneyMap(totalByCcy), t("stats.siloCount", { n: state.silos.length })));
-    grid.appendChild(statTile(t("stats.thisMonthIn"),  prettyMoneyMap(monthIn)));
-    grid.appendChild(statTile(t("stats.thisMonthOut"), prettyMoneyMap(monthOut)));
-    grid.appendChild(statTile(t("stats.thisYearIn"),   prettyMoneyMap(yearIn)));
-    grid.appendChild(statTile(t("stats.thisYearOut"),  prettyMoneyMap(yearOut)));
-    // Net this month
+    grid.appendChild(statTile(t("stats.totalBalance"), totalByCcy, t("stats.siloCount", { n: state.silos.length })));
+    grid.appendChild(statTile(t("stats.thisMonthIn"),  monthIn));
+    grid.appendChild(statTile(t("stats.thisMonthOut"), monthOut));
+    grid.appendChild(statTile(t("stats.thisYearIn"),   yearIn));
+    grid.appendChild(statTile(t("stats.thisYearOut"),  yearOut));
     const net = {};
     Object.keys({ ...monthIn, ...monthOut }).forEach(c => net[c] = (monthIn[c] || 0) - (monthOut[c] || 0));
-    grid.appendChild(statTile(t("stats.netThisMonth"), prettyMoneyMap(net)));
+    grid.appendChild(statTile(t("stats.netThisMonth"), net));
     view.appendChild(grid);
 
     // By category this month
@@ -1941,26 +2105,33 @@
       entries.forEach(([catId, ccys]) => {
         const c = catId === "_none" ? null : categoryById(catId);
         const name = c ? categoryName(c) : t("tx.noCategory");
-        const colorCss = c?.color ? { borderLeft: "3px solid " + c.color } : {};
-        catGrid.appendChild(el("div", { class: "stat-tile", style: colorCss },
-          el("span", { class: "label" }, (c?.icon ? c.icon + " " : "") + name),
-          el("span", { class: "value" }, prettyMoneyMap(ccys)),
-        ));
+        const tile = statTile((c?.icon ? c.icon + " " : "") + name, ccys);
+        if (c?.color) tile.style.borderLeft = "3px solid " + c.color;
+        catGrid.appendChild(tile);
       });
       view.appendChild(catGrid);
     }
   }
-  function statTile(label, value, sub) {
-    return el("div", { class: "stat-tile" },
-      el("span", { class: "label" }, label),
-      el("span", { class: "value" }, value || "—"),
-      sub ? el("span", { class: "sub" }, sub) : null,
-    );
-  }
-  function prettyMoneyMap(map) {
-    const keys = Object.keys(map);
-    if (keys.length === 0) return "—";
-    return keys.sort().map(c => fmtAmount(map[c]) + " " + c).join(" · ");
+  // statTile: header on top, then one row per currency below (amount + currency code).
+  function statTile(label, valuesMap, sub) {
+    const tile = el("div", { class: "stat-tile" });
+    tile.appendChild(el("span", { class: "label" }, label));
+    const valBox = el("div", { class: "value-box" });
+    const keys = Object.keys(valuesMap || {}).sort();
+    if (keys.length === 0) {
+      valBox.appendChild(el("div", { class: "value is-empty" }, el("span", { class: "num" }, "—")));
+    } else {
+      keys.forEach(c => {
+        const v = valuesMap[c];
+        valBox.appendChild(el("div", { class: "value" + (v < 0 ? " is-negative" : "") },
+          el("span", { class: "num" }, fmtAmount(v)),
+          el("span", { class: "currency" }, c),
+        ));
+      });
+    }
+    tile.appendChild(valBox);
+    if (sub) tile.appendChild(el("span", { class: "sub" }, sub));
+    return tile;
   }
 
   /* ============================================================
@@ -2133,24 +2304,40 @@
     });
     wrap.appendChild(tiles);
 
-    // Chart (primary currency)
-    const ccy = primaryCurrency(silo);
+    // Charts — one per currency in this silo
+    const now = Date.now();
+    const chartCcys = Array.from(new Set([...Object.keys(fc.now), ...Object.keys(fc.projected)]));
+    if (chartCcys.length === 0) chartCcys.push(state.currencies[0]?.code || "");
+    chartCcys.forEach(ccy => {
+      const points = buildBalancePoints(silo.id, ccy, fc, now, target);
+      wrap.appendChild(el("div", { class: "forecast-chart-wrap" },
+        renderChart(points, ccy, silo.color || "#14B8A6", "#E5484D")
+      ));
+    });
+
+    return wrap;
+  }
+
+  // For unique clip-path ids per render.
+  let __chartId = 0;
+  // Build the step-line points for a silo+currency from now to target.
+  function buildBalancePoints(siloId, ccy, fc, now, target) {
     const events = fc.events.filter(e => e.delta[ccy] !== undefined);
     const points = [];
     let running = fc.now[ccy] || 0;
-    const now = Date.now();
     points.push({ t: now, v: running });
     events.forEach(ev => {
       running += ev.delta[ccy] || 0;
       points.push({ t: ev.at, v: running });
     });
     points.push({ t: target, v: running });
-    wrap.appendChild(el("div", { class: "forecast-chart-wrap" }, renderChart(points, ccy, silo.color || "#14B8A6")));
-
-    return wrap;
+    return points;
   }
-
-  function renderChart(points, ccy, color) {
+  // Renders a step-line balance chart with positive segments in posColor
+  // and negative segments in negColor. Always draws a dashed zero line.
+  function renderChart(points, ccy, posColor, negColor) {
+    __chartId++;
+    const id = __chartId;
     const W = 600, H = 180, P = 24;
     const svgNS = "http://www.w3.org/2000/svg";
     const svg = document.createElementNS(svgNS, "svg");
@@ -2165,51 +2352,85 @@
     const vMin = Math.min(...vs, 0), vMax = Math.max(...vs, 0);
     const xFor = t => P + (tMax === tMin ? 0 : ((t - tMin) / (tMax - tMin)) * (W - 2 * P));
     const yFor = v => H - P - (vMax === vMin ? (H - 2 * P) / 2 : ((v - vMin) / (vMax - vMin)) * (H - 2 * P));
+    const y0 = yFor(0);
 
-    // Zero-line if range spans zero
-    if (vMin < 0 && vMax > 0) {
-      const y0 = yFor(0);
-      const zero = document.createElementNS(svgNS, "line");
-      zero.setAttribute("x1", P); zero.setAttribute("x2", W - P);
-      zero.setAttribute("y1", y0); zero.setAttribute("y2", y0);
-      zero.setAttribute("stroke", "currentColor"); zero.setAttribute("stroke-opacity", "0.2");
-      zero.setAttribute("stroke-dasharray", "2 4");
-      svg.appendChild(zero);
-    }
-    // Build step path (constant between events, jump at event)
+    // ---- Always-on dashed zero line ----
+    const zero = document.createElementNS(svgNS, "line");
+    zero.setAttribute("x1", P); zero.setAttribute("x2", W - P);
+    zero.setAttribute("y1", y0); zero.setAttribute("y2", y0);
+    zero.setAttribute("stroke", "currentColor");
+    zero.setAttribute("stroke-opacity", "0.3");
+    zero.setAttribute("stroke-dasharray", "3 5");
+    svg.appendChild(zero);
+
+    // ---- Step path ----
     let d = "";
     points.forEach((p, i) => {
       const x = xFor(p.t), y = yFor(p.v);
       if (i === 0) { d += `M ${x} ${y}`; }
       else {
         const prev = points[i - 1];
-        const px = xFor(prev.t), py = yFor(prev.v);
+        const py = yFor(prev.v);
         d += ` L ${x} ${py} L ${x} ${y}`;
       }
     });
-    // Area under the curve
-    const area = document.createElementNS(svgNS, "path");
-    const y0clip = yFor(0);
-    let darea = d + ` L ${xFor(points[points.length - 1].t)} ${y0clip} L ${xFor(points[0].t)} ${y0clip} Z`;
-    area.setAttribute("d", darea);
-    area.setAttribute("fill", color);
-    area.setAttribute("fill-opacity", "0.12");
-    svg.appendChild(area);
+    const dArea = d + ` L ${xFor(points[points.length - 1].t)} ${y0} L ${xFor(points[0].t)} ${y0} Z`;
 
-    const path = document.createElementNS(svgNS, "path");
-    path.setAttribute("d", d);
-    path.setAttribute("fill", "none");
-    path.setAttribute("stroke", color);
-    path.setAttribute("stroke-width", "2");
-    path.setAttribute("stroke-linecap", "round");
-    path.setAttribute("stroke-linejoin", "round");
-    svg.appendChild(path);
+    // ---- Clip rects: above and below the zero line ----
+    const defs = document.createElementNS(svgNS, "defs");
+    const aboveH = Math.max(0, y0);
+    const belowH = Math.max(0, H - y0);
+    const clipA = document.createElementNS(svgNS, "clipPath");
+    clipA.setAttribute("id", `cAbove_${id}`);
+    const rA = document.createElementNS(svgNS, "rect");
+    rA.setAttribute("x", "0"); rA.setAttribute("y", "0");
+    rA.setAttribute("width", String(W)); rA.setAttribute("height", String(aboveH));
+    clipA.appendChild(rA);
+    defs.appendChild(clipA);
+    const clipB = document.createElementNS(svgNS, "clipPath");
+    clipB.setAttribute("id", `cBelow_${id}`);
+    const rB = document.createElementNS(svgNS, "rect");
+    rB.setAttribute("x", "0"); rB.setAttribute("y", String(y0));
+    rB.setAttribute("width", String(W)); rB.setAttribute("height", String(belowH));
+    clipB.appendChild(rB);
+    defs.appendChild(clipB);
+    svg.appendChild(defs);
 
-    // Endpoint dot + label
+    // ---- Area fills (clipped) ----
+    const areaA = document.createElementNS(svgNS, "path");
+    areaA.setAttribute("d", dArea);
+    areaA.setAttribute("fill", posColor);
+    areaA.setAttribute("fill-opacity", "0.14");
+    areaA.setAttribute("clip-path", `url(#cAbove_${id})`);
+    svg.appendChild(areaA);
+    const areaB = document.createElementNS(svgNS, "path");
+    areaB.setAttribute("d", dArea);
+    areaB.setAttribute("fill", negColor);
+    areaB.setAttribute("fill-opacity", "0.14");
+    areaB.setAttribute("clip-path", `url(#cBelow_${id})`);
+    svg.appendChild(areaB);
+
+    // ---- Line stroke (drawn twice with two clips → green on top, red below) ----
+    const makeLine = (color, clipId) => {
+      const p = document.createElementNS(svgNS, "path");
+      p.setAttribute("d", d);
+      p.setAttribute("fill", "none");
+      p.setAttribute("stroke", color);
+      p.setAttribute("stroke-width", "2");
+      p.setAttribute("stroke-linecap", "round");
+      p.setAttribute("stroke-linejoin", "round");
+      p.setAttribute("clip-path", `url(#${clipId})`);
+      return p;
+    };
+    svg.appendChild(makeLine(posColor, `cAbove_${id}`));
+    svg.appendChild(makeLine(negColor, `cBelow_${id}`));
+
+    // ---- Endpoint dot + label, colored by sign ----
     const last = points[points.length - 1];
+    const endColor = last.v < 0 ? negColor : posColor;
     const dot = document.createElementNS(svgNS, "circle");
     dot.setAttribute("cx", xFor(last.t)); dot.setAttribute("cy", yFor(last.v));
-    dot.setAttribute("r", "4"); dot.setAttribute("fill", color);
+    dot.setAttribute("r", "4"); dot.setAttribute("fill", endColor);
     svg.appendChild(dot);
 
     const label = document.createElementNS(svgNS, "text");

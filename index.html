@@ -326,7 +326,18 @@
         <select id="ruleCurrency"></select>
       </fieldset>
 
-      <fieldset class="field field-row">
+      <label class="field">
+        <span data-i18n="rule.schedule">Schedule</span>
+        <select id="ruleSchedule">
+          <option value="interval"      data-i18n="schedule.interval">Custom interval</option>
+          <option value="firstOfMonth"  data-i18n="schedule.firstOfMonth">First day of every month</option>
+          <option value="lastOfMonth"   data-i18n="schedule.lastOfMonth">Last day of every month</option>
+          <option value="firstOfYear"   data-i18n="schedule.firstOfYear">First day of every year</option>
+          <option value="lastOfYear"    data-i18n="schedule.lastOfYear">Last day of every year</option>
+        </select>
+      </label>
+
+      <fieldset class="field field-row" id="ruleEveryField">
         <legend data-i18n="rule.every">Repeat every</legend>
         <input type="number" id="ruleEveryAmount" min="1" step="1" value="1" />
         <select id="ruleEveryUnit">
@@ -342,6 +353,7 @@
       <label class="field">
         <span data-i18n="rule.startAt">First occurrence</span>
         <input type="datetime-local" id="ruleStartAt" />
+        <small id="ruleFirstPreview" class="muted small" hidden></small>
       </label>
 
       <label class="field">
