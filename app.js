@@ -199,6 +199,14 @@
       // forecast caption
       "forecast.in":       "from rules & scheduled",
       "forecast.subTitle": "Sum of all scheduled income minus expenses + transfers, applied to your current balance.",
+      // quick set balance
+      "balance.title":       "Set balance",
+      "balance.quickSet":    "Set balance",
+      "balance.current":     "Current balance",
+      "balance.new":         "New balance",
+      "balance.adjustment":  "Adjustment",
+      "balance.note":        "Note (optional)",
+      "balance.defaultLabel":"Balance adjustment",
     },
 
     da: {
@@ -361,6 +369,13 @@
       "txn.oneTime":  "engang",
       "forecast.in":       "fra regler & planlagte",
       "forecast.subTitle": "Summen af alle planlagte indtægter minus udgifter + overførsler, anvendt på din nuværende saldo.",
+      "balance.title":       "Sæt saldo",
+      "balance.quickSet":    "Sæt saldo",
+      "balance.current":     "Nuværende saldo",
+      "balance.new":         "Ny saldo",
+      "balance.adjustment":  "Justering",
+      "balance.note":        "Note (valgfri)",
+      "balance.defaultLabel":"Saldojustering",
     },
   };
 
@@ -1493,6 +1508,85 @@
   }
 
   /* ============================================================
+     SET BALANCE MODAL (quick adjustment)
+     ============================================================ */
+  let setBalanceCtx = null; // { siloId, currency }
+
+  function openSetBalanceModal(silo, ccy) {
+    setBalanceCtx = { siloId: silo.id, currency: ccy };
+    const current = silo.balances[ccy] || 0;
+    $("#setBalanceSub").textContent = (silo.icon ? silo.icon + " " : "") + silo.name + " · " + ccy;
+    $("#setBalanceCurrent").textContent = fmtAmount(current) + " " + ccy;
+    $("#setBalanceAmount").value = current;
+    $("#setBalanceNote").value = "";
+    updateSetBalanceDelta();
+    $("#setBalanceModal").hidden = false;
+    setTimeout(() => { const a = $("#setBalanceAmount"); a.focus(); a.select(); }, 60);
+  }
+  function closeSetBalanceModal() {
+    $("#setBalanceModal").hidden = true;
+    setBalanceCtx = null;
+  }
+  function updateSetBalanceDelta() {
+    if (!setBalanceCtx) return;
+    const silo = siloById(setBalanceCtx.siloId);
+    if (!silo) return;
+    const current = silo.balances[setBalanceCtx.currency] || 0;
+    const nv = parseFloat($("#setBalanceAmount").value);
+    const wrap = $("#setBalanceDelta");
+    if (isNaN(nv)) { wrap.hidden = true; return; }
+    const delta = nv - current;
+    if (delta === 0) { wrap.hidden = true; return; }
+    wrap.hidden = false;
+    const sign = delta > 0 ? "+" : "−";
+    const v = $("#setBalanceDeltaValue");
+    v.textContent = sign + fmtAmount(Math.abs(delta)) + " " + setBalanceCtx.currency;
+    v.style.color = delta > 0 ? "var(--success)" : "var(--danger)";
+  }
+  function bindSetBalanceModal() {
+    $$("[data-close-modal]", $("#setBalanceModal")).forEach(b => b.onclick = closeSetBalanceModal);
+    $("#setBalanceAmount").addEventListener("input", updateSetBalanceDelta);
+    $("#setBalanceForm").onsubmit = (e) => {
+      e.preventDefault();
+      if (!setBalanceCtx) return;
+      const silo = siloById(setBalanceCtx.siloId);
+      if (!silo) return;
+      const ccy = setBalanceCtx.currency;
+      const current = silo.balances[ccy] || 0;
+      const nv = parseFloat($("#setBalanceAmount").value);
+      if (isNaN(nv)) return;
+      const delta = nv - current;
+      const note = $("#setBalanceNote").value.trim();
+      const label = note || t("balance.defaultLabel");
+      if (delta !== 0) {
+        const type = delta > 0 ? "income" : "expense";
+        const amount = Math.abs(delta);
+        const tx = {
+          id: cryptoId(),
+          type,
+          fromSiloId: type === "expense" ? silo.id : null,
+          toSiloId:   type === "income"  ? silo.id : null,
+          amount,
+          currency: ccy,
+          at: Date.now(),
+          status: "applied",
+          categoryId: null,
+          label,
+          ruleId: null,
+          adjust: true,
+          createdAt: Date.now(),
+        };
+        state.transactions.push(tx);
+        applyOp(tx.type, tx.fromSiloId, tx.toSiloId, tx.amount, tx.currency);
+        save();
+        toast(t("toast.updated"));
+      }
+      closeSetBalanceModal();
+      render();
+    };
+  }
+
+  /* ============================================================
      RENDER — TABS
      ============================================================ */
   function bindTabs() {
@@ -1920,17 +2014,24 @@
     ));
     const bg = el("div", { class: "balances-grid" });
     const codes = Object.keys(silo.balances);
-    if (codes.length === 0) {
-      bg.appendChild(el("div", { class: "balance-tile" },
-        el("span", { class: "currency" }, state.currencies[0]?.code || ""),
-        el("span", { class: "amount" }, fmtAmount(0)),
-      ));
-    } else codes.forEach(c => {
-      const v = silo.balances[c];
-      bg.appendChild(el("div", { class: "balance-tile" },
-        el("span", { class: "currency" }, c),
+    const renderBalanceTile = (c, v) => el("div", { class: "balance-tile" },
+      el("div", { class: "balance-tile-main" },
         el("span", { class: "amount" + (v < 0 ? " is-negative" : "") }, fmtAmount(v)),
-      ));
+        el("span", { class: "currency" }, c),
+      ),
+      el("button", {
+        class: "quick-set",
+        type: "button",
+        title: t("balance.quickSet"),
+        "aria-label": t("balance.quickSet"),
+        onclick: (e) => { e.stopPropagation(); openSetBalanceModal(silo, c); },
+        html: '<svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path fill="currentColor" d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>',
+      }),
+    );
+    if (codes.length === 0) {
+      bg.appendChild(renderBalanceTile(state.currencies[0]?.code || "", 0));
+    } else codes.forEach(c => {
+      bg.appendChild(renderBalanceTile(c, silo.balances[c]));
     });
     bal.appendChild(bg);
     root.appendChild(bal);
@@ -2208,6 +2309,7 @@
     bindSiloModal();
     bindTxModal();
     bindRuleModal();
+    bindSetBalanceModal();
     bindTabs();
 
     $("#addBtn").onclick = () => {
@@ -2241,7 +2343,7 @@
     });
     document.addEventListener("keydown", (e) => {
       if (e.key !== "Escape") return;
-      const layers = ["#iconPicker", "#chooser", "#confirmDialog", "#ruleModal", "#txModal", "#siloModal"];
+      const layers = ["#iconPicker", "#chooser", "#confirmDialog", "#setBalanceModal", "#ruleModal", "#txModal", "#siloModal"];
       for (const sel of layers) {
         const n = $(sel);
         if (n && !n.hidden) { n.hidden = true; return; }

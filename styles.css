@@ -249,8 +249,8 @@ input, select, textarea { font-family: inherit; font-size: 16px; color: var(--te
 }
 .silo-balance {
   display: flex;
-  align-items: baseline;
-  gap: 6px;
+  align-items: center;
+  gap: 10px;
 }
 .silo-balance .amount {
   font-variant-numeric: tabular-nums;
@@ -537,21 +537,49 @@ input, select, textarea { font-family: inherit; font-size: 16px; color: var(--te
   background: var(--surface-2);
   border: 1px solid var(--border);
   border-radius: 12px;
-  padding: 10px 12px;
+  padding: 12px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.balance-tile .balance-tile-main {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  flex: 1;
 }
 .balance-tile .currency {
-  font-size: 11px;
-  letter-spacing: 0.05em;
+  font-size: 12px;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   font-weight: 700;
   color: var(--text-faint);
 }
 .balance-tile .amount {
-  font-size: 20px;
+  font-size: 22px;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
+  line-height: 1.1;
 }
 .balance-tile .amount.is-negative { color: var(--danger); }
+.balance-tile .quick-set {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  border-radius: 8px;
+  width: 34px; height: 34px;
+  display: inline-flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background .15s ease, color .15s ease, border-color .15s ease;
+}
+.balance-tile .quick-set:hover {
+  background: var(--surface-3);
+  color: var(--text);
+  border-color: color-mix(in srgb, var(--brand-2) 45%, var(--border));
+}
 
 /* ---------- Stats card ---------- */
 .stats-grid {

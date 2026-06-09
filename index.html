@@ -372,6 +372,48 @@
   </div>
 </div>
 
+<!-- ============ SET BALANCE MODAL ============ -->
+<div id="setBalanceModal" class="modal" hidden>
+  <div class="modal-scrim" data-close-modal></div>
+  <div class="modal-card modal-card-sm" role="dialog" aria-label="Set balance">
+    <header class="modal-head">
+      <h2 data-i18n="balance.title">Set balance</h2>
+      <button class="icon-btn" data-close-modal aria-label="Close">
+        <svg viewBox="0 0 24 24" width="22" height="22"><path fill="currentColor" d="M18.3 5.71 12 12.01l6.3 6.29-1.41 1.41L10.59 13.4 4.29 19.71l-1.41-1.41 6.3-6.29-6.3-6.3L4.29 4.3l6.3 6.29 6.3-6.29z"/></svg>
+      </button>
+    </header>
+    <form id="setBalanceForm" class="modal-body">
+      <p id="setBalanceSub" class="muted small" style="margin:0;"></p>
+
+      <div class="field">
+        <span data-i18n="balance.current">Current balance</span>
+        <div id="setBalanceCurrent" style="font-variant-numeric:tabular-nums; font-weight:700; font-size:18px;"></div>
+      </div>
+
+      <label class="field">
+        <span data-i18n="balance.new">New balance</span>
+        <input type="number" id="setBalanceAmount" step="0.01" required />
+      </label>
+
+      <div class="field" id="setBalanceDelta" hidden>
+        <span data-i18n="balance.adjustment">Adjustment</span>
+        <div id="setBalanceDeltaValue" style="font-variant-numeric:tabular-nums; font-weight:700; font-size:16px;"></div>
+      </div>
+
+      <label class="field">
+        <span data-i18n="balance.note">Note (optional)</span>
+        <input type="text" id="setBalanceNote" maxlength="80" placeholder="" />
+      </label>
+
+      <div class="modal-actions">
+        <span class="spacer"></span>
+        <button type="button" class="btn btn-ghost" data-close-modal data-i18n="cancel">Cancel</button>
+        <button type="submit" class="btn btn-primary" data-i18n="save">Save</button>
+      </div>
+    </form>
+  </div>
+</div>
+
 <!-- ============ CONFIRM DIALOG ============ -->
 <div id="confirmDialog" class="modal" hidden>
   <div class="modal-scrim" data-cancel></div>
