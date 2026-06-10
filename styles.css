@@ -1308,6 +1308,13 @@ input, select, textarea { font-family: inherit; font-size: 16px; color: var(--te
   .position-row input[type="number"] { grid-column: span 2; }
 }
 
+/* ---------- Rule modal recurring section ---------- */
+#ruleRecurringFields {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
 /* ---------- Weekday toggles ---------- */
 .weekday-toggles {
   display: grid;

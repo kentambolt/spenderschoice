@@ -166,11 +166,11 @@
       "next":    "Next",
       "save":    "Save",
       "cancel":  "Cancel",
-      "add.title":"What would you like to add?",
-      "add.account": "＋ Account",
-      "add.tx":   "＋ Transaction (one-time)",
-      "add.rule": "＋ Recurring rule",
-      "add.setBalance": "＋ Set balance",
+      "add.title":"What would you like to do?",
+      "add.account": "New account",
+      "add.tx":   "Add Transaction",
+      "add.rule": "Add Rule",
+      "add.setBalance": "Update balance",
       // confirm
       "confirm.ok":           "Confirm",
       "confirm.deleteTitle":  "Delete this?",
@@ -218,14 +218,30 @@
       // Start
       "start.title":            "Start",
       "start.now":              "Now",
-      "start.specific":         "Specific date &amp; time",
-      // Recurring
-      "recurring.title":        "Recurring",
+      "start.specific":         "Specific date & time",
+      // How often
+      "howOften.title":         "How often",
+      "howOften.once":          "Once",
+      "howOften.forever":       "Forever",
+      "howOften.times":         "Fixed number",
+      "howOften.numberOf":      "Number of times",
       "recurring.one":          "One-time",
-      "recurring.unlimited":    "Continuous (no limit)",
-      "recurring.maxLabel":     "Stop after N occurrences (optional)",
-      "recurring.maxPlaceholder":"Leave blank for continuous",
       "recurring.endAtLabel":   "Stop on date (optional)",
+      // Preview narratives
+      "preview.once":           "Will trigger once on {first}.",
+      "preview.forever":        "First trigger on {first}, then {sched}, continuing indefinitely.",
+      "preview.times":          "First trigger on {first}, then {sched}. Final trigger on {last} ({n} triggers in total).",
+      "preview.timesOne":       "Will trigger once on {first}.",
+      // Interval label singular (n = 1)
+      "every1.minute":          "every minute",
+      "every1.hour":            "every hour",
+      "every1.day":             "every day",
+      "every1.week":            "every week",
+      "every1.month":           "every month",
+      "every1.year":            "every year",
+      // Weekday "every"-style labels for the schedule sentence
+      "every.weekday":          "every {day}",
+      "every.weekdays":         "every {list}",
       // Pattern
       "pattern.title":          "Repeats",
       "pattern.interval":       "Custom interval",
@@ -428,11 +444,11 @@
       "next":   "Videre",
       "save":   "Gem",
       "cancel": "Annuller",
-      "add.title":"Hvad vil du tilføje?",
-      "add.account": "＋ Konto",
-      "add.tx":   "＋ Transaktion (engang)",
-      "add.rule": "＋ Tilbagevendende regel",
-      "add.setBalance": "＋ Sæt saldo",
+      "add.title":"Hvad vil du gøre?",
+      "add.account": "Ny konto",
+      "add.tx":   "Tilføj transaktion",
+      "add.rule": "Tilføj regel",
+      "add.setBalance": "Opdater saldo",
       "confirm.ok":           "Bekræft",
       "confirm.deleteTitle":  "Slet dette?",
       "confirm.deleteBody":   "Dette kan ikke fortrydes.",
@@ -471,12 +487,25 @@
       "start.title":            "Start",
       "start.now":              "Nu",
       "start.specific":         "Bestemt dato og tid",
-      "recurring.title":        "Gentages",
+      "howOften.title":         "Hvor ofte",
+      "howOften.once":          "Én gang",
+      "howOften.forever":       "For altid",
+      "howOften.times":         "Fast antal",
+      "howOften.numberOf":      "Antal gange",
       "recurring.one":          "Engangs",
-      "recurring.unlimited":    "Kontinuerligt (uden grænse)",
-      "recurring.maxLabel":     "Stop efter N forekomster (valgfri)",
-      "recurring.maxPlaceholder":"Tomt = kontinuerligt",
       "recurring.endAtLabel":   "Stop på dato (valgfri)",
+      "preview.once":           "Aktiveres én gang den {first}.",
+      "preview.forever":        "Første gang den {first}, derefter {sched}, fortsætter uendeligt.",
+      "preview.times":          "Første gang den {first}, derefter {sched}. Sidste gang den {last} (i alt {n} aktiveringer).",
+      "preview.timesOne":       "Aktiveres én gang den {first}.",
+      "every1.minute":          "hvert minut",
+      "every1.hour":            "hver time",
+      "every1.day":             "hver dag",
+      "every1.week":            "hver uge",
+      "every1.month":           "hver måned",
+      "every1.year":            "hvert år",
+      "every.weekday":          "hver {day}",
+      "every.weekdays":         "hver {list}",
       "pattern.title":          "Gentager",
       "pattern.interval":       "Brugerdefineret interval",
       "pattern.weekdays":       "Bestemte ugedage",
@@ -623,6 +652,7 @@
     return new Date(year, monthIdx + 1, 0).getDate();
   }
   function intervalLabel(every) {
+    if (every.amount === 1) return t("every1." + every.unit);
     return t("every." + every.unit, { n: every.amount });
   }
   // Day-of-week constants for legacy migration helpers.
@@ -810,7 +840,8 @@
     if (pat.type === "weekdays") {
       const wds = pat.weekdays || [];
       if (wds.length === 7) return t("weekdays.everyDay");
-      return _weekdayListLabel(wds);
+      if (wds.length === 1) return t("every.weekday", { day: t("weekday." + WEEKDAY_KEYS[wds[0]]) });
+      return t("every.weekdays", { list: _weekdayListLabel(wds) });
     }
     const ordinal = ordinalLabel(pat.n || 1, !!pat.fromEnd);
     if (pat.type === "dayOfPeriod") {
@@ -1957,6 +1988,7 @@
 
   // Tracks "Now" vs "Specific" for the Start segmented selector.
   let ruleStartMode = "now";
+  let ruleHowOften = "forever"; // "once" | "forever" | "times"
 
   function _buildWeekdayToggles(containerId, selectedSet) {
     const container = $(containerId);
@@ -2003,8 +2035,12 @@
     const baseTs = rule?.startAt ?? Date.now();
     $("#ruleStartAt").value = toLocalInputValue(baseTs);
 
-    $("#ruleRecurring").checked = rule ? rule.recurring !== false : true;
-    $("#ruleMaxOccurrences").value = rule?.maxOccurrences ?? "";
+    // How-often mode derived from existing rule state.
+    if (rule && rule.recurring === false) ruleHowOften = "once";
+    else if (rule && rule.maxOccurrences != null) ruleHowOften = "times";
+    else ruleHowOften = "forever";
+    $$("#ruleHowOftenSeg button").forEach(b => b.classList.toggle("is-active", b.dataset.mode === ruleHowOften));
+    $("#ruleHowOftenTimes").value = rule?.maxOccurrences ?? 4;
 
     // Pattern setup
     const pat = rule?.pattern || patternFromLegacy(rule || {});
@@ -2121,11 +2157,12 @@
     // Start specific datetime field
     $("#ruleStartAtField").hidden = (ruleStartMode !== "specific");
 
-    // Recurring fields
-    const isRecurring = $("#ruleRecurring").checked;
-    $("#ruleRecurringFields").hidden = !isRecurring;
+    // How-often selector + N input visibility
+    $$("#ruleHowOftenSeg button").forEach(b => b.classList.toggle("is-active", b.dataset.mode === ruleHowOften));
+    $("#ruleHowOftenTimesField").hidden = (ruleHowOften !== "times");
+    $("#ruleRecurringFields").hidden    = (ruleHowOften === "once");
 
-    if (!isRecurring) {
+    if (ruleHowOften === "once") {
       $$("#ruleForm button[type=submit]").forEach(b => b.disabled = false);
       _updatePreview();
       return;
@@ -2138,13 +2175,11 @@
     $("#ruleWdopField").hidden            = (type !== "weekdayOfPeriod");
     $("#ruleTimeField").hidden            = (type === "interval");
 
-    // Show/hide N inputs depending on First/Last/Nth/Nth-last
     const dopDir = $("#ruleDopDirection").value;
     $("#ruleDopN").hidden = (dopDir === "first" || dopDir === "last");
     const wdopDir = $("#ruleWdopDirection").value;
     $("#ruleWdopN").hidden = (wdopDir === "first" || wdopDir === "last");
 
-    // Validation
     const pattern = ruleFormPattern();
     const v = patternValidity(pattern);
     const valEl = $("#rulePatternValidation");
@@ -2164,27 +2199,50 @@
 
     _updatePreview();
   }
+
+  // Builds the live preview sentence using the current form state, describing
+  // first / recurrence / last + total triggers as applicable.
   function _updatePreview() {
     const previewEl = $("#ruleFirstPreview");
-    const isRecurring = $("#ruleRecurring").checked;
     const startAt = ruleFormStartAt();
-    if (!isRecurring) {
+
+    if (ruleHowOften === "once") {
       previewEl.hidden = false;
-      previewEl.textContent = t("rule.firstWillBe", { date: fmtDateTime(startAt) });
+      previewEl.textContent = t("preview.once", { first: fmtDateTime(startAt) });
       return;
     }
     const pattern = ruleFormPattern();
     const v = patternValidity(pattern);
     if (!v.ok) { previewEl.hidden = true; return; }
     const { h, mi } = ruleFormTimeOfDay();
-    const temp = {
-      recurring: true, startAt, pattern,
+    const tempRule = {
+      recurring: true,
+      startAt, pattern,
       timeOfDay: { h, mi },
+      maxOccurrences: ruleHowOften === "times"
+        ? Math.max(1, parseInt($("#ruleHowOftenTimes").value, 10) || 1)
+        : null,
     };
-    const first = ruleFirstOccurrence(temp);
+    const first = ruleFirstOccurrence(tempRule);
     if (first == null) { previewEl.hidden = true; return; }
+    const sched = scheduleLabel(tempRule);
     previewEl.hidden = false;
-    previewEl.textContent = t("rule.firstWillBe", { date: fmtDateTime(first) });
+    if (ruleHowOften === "forever") {
+      previewEl.textContent = t("preview.forever", { first: fmtDateTime(first), sched });
+    } else {
+      const n = tempRule.maxOccurrences;
+      if (n === 1) {
+        previewEl.textContent = t("preview.timesOne", { first: fmtDateTime(first) });
+      } else {
+        const last = nthOccurrence(tempRule, n - 1);
+        previewEl.textContent = t("preview.times", {
+          first: fmtDateTime(first),
+          sched,
+          last: last != null ? fmtDateTime(last) : "—",
+          n,
+        });
+      }
+    }
   }
   function closeRuleModal() {
     $("#ruleModal").hidden = true;
@@ -2232,8 +2290,11 @@
       updateRulePatternUI();
     });
     $("#ruleStartAt").addEventListener("input", updateRulePatternUI);
-    $("#ruleRecurring").addEventListener("change", updateRulePatternUI);
-    $("#ruleMaxOccurrences").addEventListener("input", updateRulePatternUI);
+    $$("#ruleHowOftenSeg button").forEach(b => b.onclick = () => {
+      ruleHowOften = b.dataset.mode;
+      updateRulePatternUI();
+    });
+    $("#ruleHowOftenTimes").addEventListener("input", updateRulePatternUI);
     $("#rulePatternType").addEventListener("change", updateRulePatternUI);
     $("#ruleEveryAmount").addEventListener("input", updateRulePatternUI);
     $("#ruleEveryUnit").addEventListener("change", updateRulePatternUI);
@@ -2260,9 +2321,10 @@
       const categoryId = $("#ruleCategory").value || null;
       const label = $("#ruleLabel").value.trim();
       const active = $("#ruleActive").checked;
-      const recurring = $("#ruleRecurring").checked;
-      const maxOccurrencesParsed = parseInt($("#ruleMaxOccurrences").value, 10);
-      const maxOccurrences = (recurring && Number.isFinite(maxOccurrencesParsed) && maxOccurrencesParsed > 0) ? maxOccurrencesParsed : null;
+      const recurring = ruleHowOften !== "once";
+      const maxOccurrences = (ruleHowOften === "times")
+        ? Math.max(1, parseInt($("#ruleHowOftenTimes").value, 10) || 1)
+        : null;
       const fromAccountId = (ruleType === "income") ? null : $("#ruleFrom").value;
       const toAccountId   = (ruleType === "expense") ? null : $("#ruleTo").value;
       if (ruleType === "transfer" && fromAccountId === toAccountId) {

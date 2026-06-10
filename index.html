@@ -348,19 +348,21 @@
         <input type="datetime-local" id="ruleStartAt" />
       </label>
 
-      <!-- Recurring toggle -->
-      <label class="toggle">
-        <input type="checkbox" id="ruleRecurring" checked />
-        <span class="toggle-slider"></span>
-        <span class="toggle-label" data-i18n="recurring.title">Recurring</span>
+      <!-- How often (replaces old Recurring toggle + Stop after N) -->
+      <div class="field">
+        <span data-i18n="howOften.title">How often</span>
+        <div class="type-seg" id="ruleHowOftenSeg">
+          <button type="button" data-mode="once"    data-i18n="howOften.once">Once</button>
+          <button type="button" data-mode="forever" class="is-active" data-i18n="howOften.forever">Forever</button>
+          <button type="button" data-mode="times"   data-i18n="howOften.times">Fixed number</button>
+        </div>
+      </div>
+      <label class="field" id="ruleHowOftenTimesField" hidden>
+        <span data-i18n="howOften.numberOf">Number of times</span>
+        <input type="number" id="ruleHowOftenTimes" min="2" step="1" value="4" />
       </label>
 
       <div id="ruleRecurringFields">
-        <label class="field">
-          <span data-i18n="recurring.maxLabel">Stop after N occurrences (optional)</span>
-          <input type="number" id="ruleMaxOccurrences" min="1" step="1" data-i18n-placeholder="recurring.maxPlaceholder" placeholder="Leave blank for continuous" />
-        </label>
-
         <label class="field">
           <span data-i18n="pattern.title">Repeats</span>
           <select id="rulePatternType">
@@ -546,12 +548,12 @@
   <div class="modal-scrim" data-cancel></div>
   <div class="modal-card modal-card-sm" role="dialog" aria-label="Add">
     <div class="modal-body">
-      <h3 class="dlg-title" data-i18n="add.title">What would you like to add?</h3>
+      <h3 class="dlg-title" data-i18n="add.title">What would you like to do?</h3>
       <div style="display:flex; flex-direction:column; gap:8px; margin: 4px 0 8px;">
-        <button type="button" class="btn btn-secondary" id="chooseAccount" data-i18n="add.account">＋ Account</button>
-        <button type="button" class="btn btn-secondary" id="chooseTx"   data-i18n="add.tx">＋ Transaction (one-time)</button>
-        <button type="button" class="btn btn-secondary" id="chooseRule" data-i18n="add.rule">＋ Recurring rule</button>
-        <button type="button" class="btn btn-secondary" id="chooseSetBalance" hidden data-i18n="add.setBalance">＋ Set balance</button>
+        <button type="button" class="btn btn-secondary" id="chooseAccount" data-i18n="add.account">New account</button>
+        <button type="button" class="btn btn-secondary" id="chooseTx"   data-i18n="add.tx">Add Transaction</button>
+        <button type="button" class="btn btn-secondary" id="chooseRule" data-i18n="add.rule">Add Rule</button>
+        <button type="button" class="btn btn-secondary" id="chooseSetBalance" hidden data-i18n="add.setBalance">Update balance</button>
       </div>
       <div class="modal-actions">
         <span class="spacer"></span>
