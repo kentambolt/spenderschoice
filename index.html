@@ -29,7 +29,6 @@
     <nav class="tabs" role="tablist">
       <button class="tab is-active" data-tab="accounts"    role="tab" data-i18n="tab.accounts">Accounts</button>
       <button class="tab"           data-tab="forecast" role="tab" data-i18n="tab.forecast">Forecast</button>
-      <button class="tab"           data-tab="rules"    role="tab" data-i18n="tab.rules">Rules</button>
       <button class="tab"           data-tab="history"  role="tab" data-i18n="tab.history">History</button>
       <button class="tab"           data-tab="stats"    role="tab" data-i18n="tab.stats">Stats</button>
     </nav>
@@ -43,6 +42,16 @@
       <button class="btn btn-primary" id="emptyCta" data-i18n="empty.cta">Add an account</button>
     </div>
   </main>
+
+  <!-- Top dropdown menu (opened by the 3-lines button) -->
+  <div id="topMenu" class="dropdown-menu" hidden role="menu">
+    <button type="button" role="menuitem" data-action="rules"      data-i18n="menu.rules">Rules</button>
+    <button type="button" role="menuitem" data-action="currencies" data-i18n="menu.currencies">Currencies</button>
+    <button type="button" role="menuitem" data-action="categories" data-i18n="menu.categories">Categories</button>
+    <button type="button" role="menuitem" data-action="theme"      data-i18n="menu.theme">Appearance</button>
+    <button type="button" role="menuitem" data-action="data"       data-i18n="menu.data">Your data</button>
+    <button type="button" role="menuitem" data-action="language"   data-i18n="menu.language">Language</button>
+  </div>
 
   <button id="addBtn" class="fab" aria-label="Add" title="Add">
     <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path fill="currentColor" d="M11 5h2v14h-2zM5 11h14v2H5z"/></svg>
@@ -134,26 +143,26 @@
     </header>
 
     <div class="drawer-body">
-      <section class="setting">
+      <section class="setting" id="sectionLanguage">
         <h3 data-i18n="settings.language">Language</h3>
         <div class="lang-grid" id="settingsLang"></div>
       </section>
 
-      <section class="setting">
+      <section class="setting" id="sectionCurrencies">
         <h3 data-i18n="settings.currencies">Currencies</h3>
         <p class="muted small" data-i18n="settings.currenciesHint">Codes are what show on every amount.</p>
         <div id="settingsCurrencies" class="currency-list"></div>
         <button class="btn btn-ghost btn-block" id="settingsAddCurrency" data-i18n="currency.add">+ Add currency</button>
       </section>
 
-      <section class="setting">
+      <section class="setting" id="sectionCategories">
         <h3 data-i18n="settings.categories">Categories</h3>
         <p class="muted small" data-i18n="settings.categoriesHint">Group transactions like "Rent" or "Groceries".</p>
         <div id="settingsCategories" class="category-list"></div>
         <button class="btn btn-ghost btn-block" id="settingsAddCategory" data-i18n="category.add">+ Add category</button>
       </section>
 
-      <section class="setting">
+      <section class="setting" id="sectionTheme">
         <h3 data-i18n="settings.theme">Appearance</h3>
         <div class="seg" id="themeSeg">
           <button data-theme="auto"  data-i18n="theme.auto">Auto</button>
@@ -162,7 +171,7 @@
         </div>
       </section>
 
-      <section class="setting">
+      <section class="setting" id="sectionData">
         <h3 data-i18n="settings.data">Your data</h3>
         <div class="row-btns">
           <button class="btn btn-ghost" id="exportBtn" data-i18n="settings.export">Export</button>

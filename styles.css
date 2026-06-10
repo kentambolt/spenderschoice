@@ -1494,6 +1494,44 @@ input[type="color"]::-moz-color-swatch    { border: none; border-radius: 6px; }
   .weekday-toggles { grid-template-columns: repeat(4, 1fr); }
 }
 
+/* ---------- Top dropdown menu ---------- */
+.dropdown-menu {
+  position: fixed;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+  padding: 6px;
+  min-width: 200px;
+  z-index: 110;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.dropdown-menu button {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  color: var(--text);
+  text-align: left;
+  padding: 10px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 14px;
+}
+.dropdown-menu button:hover { background: var(--surface-2); }
+
+/* Brief highlight when scrolling a settings section into view */
+.settings-focus-flash {
+  animation: settingsFocusFlash 1.6s ease;
+  border-radius: 12px;
+}
+@keyframes settingsFocusFlash {
+  0%   { background: color-mix(in srgb, var(--brand-2) 22%, transparent); }
+  100% { background: transparent; }
+}
+
 /* ---------- Utility ---------- */
 [hidden] { display: none !important; }
 .spacer { flex: 1; }

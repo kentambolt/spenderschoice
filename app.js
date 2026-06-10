@@ -193,6 +193,13 @@
       "icon.none":"No icon",
       "color.pick":"Pick a color",
       "color.custom":"Custom color",
+      // Top dropdown menu
+      "menu.rules":      "Rules",
+      "menu.currencies": "Currencies",
+      "menu.categories": "Categories",
+      "menu.theme":      "Appearance",
+      "menu.data":       "Your data",
+      "menu.language":   "Language",
       // update
       "update.available":"A new version is available.",
       "update.reload":   "Reload",
@@ -472,6 +479,12 @@
       "icon.none":"Intet ikon",
       "color.pick":"Vælg en farve",
       "color.custom":"Brugerdefineret farve",
+      "menu.rules":      "Regler",
+      "menu.currencies": "Valutaer",
+      "menu.categories": "Kategorier",
+      "menu.theme":      "Udseende",
+      "menu.data":       "Dine data",
+      "menu.language":   "Sprog",
       "update.available":"En ny version er tilgængelig.",
       "update.reload":   "Genindlæs",
       "time.now":"nu",
@@ -1580,9 +1593,75 @@
     settingsDrawer.hidden = true;
     settingsDrawer.setAttribute("aria-hidden", "true");
   }
+  // ---------- Top dropdown menu ----------
+  function openTopMenu(anchorBtn) {
+    const menu = $("#topMenu");
+    if (!menu) return;
+    menu.hidden = false;
+    const rect = anchorBtn.getBoundingClientRect();
+    menu.style.top   = (rect.bottom + 6) + "px";
+    menu.style.right = (window.innerWidth - rect.right) + "px";
+    menu.style.left  = "auto";
+  }
+  function closeTopMenu() {
+    const menu = $("#topMenu");
+    if (menu) menu.hidden = true;
+  }
+  function toggleTopMenu(anchorBtn) {
+    const menu = $("#topMenu");
+    if (!menu) return;
+    if (menu.hidden) openTopMenu(anchorBtn); else closeTopMenu();
+  }
+  function handleMenuAction(action) {
+    if (action === "rules") {
+      state.activeTab = "rules";
+      save();
+      $$(".tab").forEach(t2 => t2.classList.toggle("is-active", false));
+      render();
+      return;
+    }
+    const sectionMap = {
+      currencies: "sectionCurrencies",
+      categories: "sectionCategories",
+      theme:      "sectionTheme",
+      data:       "sectionData",
+      language:   "sectionLanguage",
+    };
+    const sectionId = sectionMap[action];
+    openSettings();
+    if (sectionId) {
+      setTimeout(() => {
+        const el = document.getElementById(sectionId);
+        if (!el) return;
+        el.scrollIntoView({ behavior: "smooth", block: "start" });
+        el.classList.remove("settings-focus-flash");
+        // restart the animation
+        void el.offsetWidth;
+        el.classList.add("settings-focus-flash");
+      }, 80);
+    }
+  }
+  function bindTopMenu() {
+    const openFor = (btn) => (e) => { e.stopPropagation(); toggleTopMenu(btn); };
+    $("#menuBtn").onclick  = openFor($("#menuBtn"));
+    $("#menuBtn2").onclick = openFor($("#menuBtn2"));
+    $$("#topMenu button").forEach(btn => {
+      btn.onclick = (e) => {
+        e.stopPropagation();
+        closeTopMenu();
+        handleMenuAction(btn.dataset.action);
+      };
+    });
+    document.addEventListener("click", (e) => {
+      if ($("#topMenu").hidden) return;
+      if (e.target.closest("#topMenu") || e.target.closest("#menuBtn") || e.target.closest("#menuBtn2")) return;
+      closeTopMenu();
+    });
+    window.addEventListener("resize", closeTopMenu);
+    window.addEventListener("scroll", closeTopMenu, true);
+  }
+
   function bindSettings() {
-    $("#menuBtn").onclick  = openSettings;
-    $("#menuBtn2").onclick = openSettings;
     $$("[data-close-drawer]", settingsDrawer).forEach(b => b.onclick = closeSettings);
 
     $("#settingsAddCurrency").onclick = () => {
@@ -2966,7 +3045,12 @@
     if (state.rules.length === 0) {
       return showEmpty(view, "empty.rulesTitle", "empty.rulesBody", "empty.rulesCta", () => openRuleModal());
     }
-    // Sort rules: active first, then next occurrence soonest
+    // The Rules view is reached via the dropdown menu (no tab pill stays
+    // active), so render a header so the user knows where they are.
+    view.appendChild(el("div", { class: "section-head" },
+      el("span", {}, t("tab.rules")),
+      el("span", { class: "count" }, String(state.rules.length))
+    ));
     const sorted = [...state.rules].sort((a, b) => {
       if (!!a.active !== !!b.active) return a.active ? -1 : 1;
       const an = nthOccurrence(a, a.occurrenceCount || 0);
@@ -3557,6 +3641,7 @@
   }
   function init() {
     bindOnboarding();
+    bindTopMenu();
     bindSettings();
     bindAccountModal();
     bindTxModal();
@@ -3595,6 +3680,8 @@
     });
     document.addEventListener("keydown", (e) => {
       if (e.key !== "Escape") return;
+      // Close the top dropdown first if open.
+      if (!$("#topMenu").hidden) { closeTopMenu(); return; }
       const layers = ["#iconPicker", "#colorPicker", "#chooser", "#confirmDialog", "#setBalanceModal", "#ruleModal", "#txModal", "#accountModal"];
       for (const sel of layers) {
         const n = $(sel);
