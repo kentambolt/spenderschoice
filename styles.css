@@ -934,7 +934,7 @@ input, select, textarea { font-family: inherit; font-size: 16px; color: var(--te
   color: var(--text-dim);
   font-weight: 600;
 }
-.field input[type="text"], .field input[type="number"], .field input[type="datetime-local"], .field input[type="date"], .field select, .field textarea {
+.field input[type="text"], .field input[type="number"], .field input[type="datetime-local"], .field input[type="date"], .field input[type="time"], .field select, .field textarea {
   background: var(--surface-2);
   border: 1px solid var(--border);
   border-radius: 10px;
@@ -942,7 +942,18 @@ input, select, textarea { font-family: inherit; font-size: 16px; color: var(--te
   outline: none;
   transition: border-color .15s ease;
   width: 100%;
+  color: var(--text);
   color-scheme: dark light;
+}
+[data-theme="dark"] .field input[type="time"],
+[data-theme="dark"] .field input[type="date"],
+[data-theme="dark"] .field input[type="datetime-local"] {
+  color-scheme: dark;
+}
+[data-theme="light"] .field input[type="time"],
+[data-theme="light"] .field input[type="date"],
+[data-theme="light"] .field input[type="datetime-local"] {
+  color-scheme: light;
 }
 .field input:focus, .field select:focus, .field textarea:focus {
   border-color: color-mix(in srgb, var(--brand-2) 60%, var(--border));
@@ -1273,6 +1284,65 @@ input, select, textarea { font-family: inherit; font-size: 16px; color: var(--te
 }
 .position-warn  { color: var(--warn) !important; }
 .position-error { color: var(--danger) !important; }
+
+/* ---------- Position row (Pattern direction + N + period) ---------- */
+.position-row {
+  display: grid;
+  grid-template-columns: 1fr 80px 1fr;
+  gap: 6px;
+  align-items: center;
+}
+.position-row select,
+.position-row input[type="number"] {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px;
+  min-width: 0;
+  width: 100%;
+  color-scheme: dark light;
+}
+@media (max-width: 480px) {
+  .position-row { grid-template-columns: 1fr 1fr; }
+  .position-row select { grid-column: span 2; }
+  .position-row input[type="number"] { grid-column: span 2; }
+}
+
+/* ---------- Weekday toggles ---------- */
+.weekday-toggles {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+}
+.weekday-toggles label {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 4px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  user-select: none;
+  color: var(--text-dim);
+  transition: background .12s ease, color .12s ease, border-color .12s ease;
+}
+.weekday-toggles label:has(input:checked) {
+  background: color-mix(in srgb, var(--brand-2) 18%, var(--surface-2));
+  border-color: var(--brand-2);
+  color: var(--text);
+}
+.weekday-toggles input[type="checkbox"] {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+@media (max-width: 380px) {
+  .weekday-toggles { grid-template-columns: repeat(4, 1fr); }
+}
 
 /* ---------- Utility ---------- */
 [hidden] { display: none !important; }

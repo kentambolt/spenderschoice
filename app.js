@@ -170,6 +170,7 @@
       "add.account": "＋ Account",
       "add.tx":   "＋ Transaction (one-time)",
       "add.rule": "＋ Recurring rule",
+      "add.setBalance": "＋ Set balance",
       // confirm
       "confirm.ok":           "Confirm",
       "confirm.deleteTitle":  "Delete this?",
@@ -214,6 +215,46 @@
       "rule.timeOfDay":         "Time of day",
       "rule.allAmount":         "Use the entire source balance",
       "rule.position":          "Position",
+      // Start
+      "start.title":            "Start",
+      "start.now":              "Now",
+      "start.specific":         "Specific date &amp; time",
+      // Recurring
+      "recurring.title":        "Recurring",
+      "recurring.one":          "One-time",
+      "recurring.unlimited":    "Continuous (no limit)",
+      "recurring.maxLabel":     "Stop after N occurrences (optional)",
+      "recurring.maxPlaceholder":"Leave blank for continuous",
+      "recurring.endAtLabel":   "Stop on date (optional)",
+      // Pattern
+      "pattern.title":          "Repeats",
+      "pattern.interval":       "Custom interval",
+      "pattern.weekdays":       "Specific weekday(s)",
+      "pattern.dayOfPeriod":    "A specific day of month or year",
+      "pattern.weekdayOfPeriod":"A specific weekday of month or year",
+      "pattern.direction":      "Position",
+      "pattern.dir.first":      "First",
+      "pattern.dir.last":       "Last",
+      "pattern.dir.nth":        "Nth (from start)",
+      "pattern.dir.nthLast":    "Nth from end",
+      "pattern.weekdays.label": "Weekdays",
+      "pattern.day.label":      "Day",
+      "pattern.weekday.label":  "Weekday position",
+      "pattern.ofMonth":        "of every month",
+      "pattern.ofYear":         "of every year",
+      "weekdays.everyDay":      "Every day",
+      "weekday.short.mon":      "Mon",
+      "weekday.short.tue":      "Tue",
+      "weekday.short.wed":      "Wed",
+      "weekday.short.thu":      "Thu",
+      "weekday.short.fri":      "Fri",
+      "weekday.short.sat":      "Sat",
+      "weekday.short.sun":      "Sun",
+      // Extra validation
+      "validation.patternRequired":  "Pick a pattern.",
+      "validation.intervalAmount":   "Interval must be 1 or greater.",
+      "validation.weekdaysRequired": "Pick at least one weekday.",
+      "validation.unknownPattern":   "Unknown pattern.",
       "schedule.interval":      "Custom interval",
       "schedule.position":      "On a specific day",
       // Position composition
@@ -391,6 +432,7 @@
       "add.account": "＋ Konto",
       "add.tx":   "＋ Transaktion (engang)",
       "add.rule": "＋ Tilbagevendende regel",
+      "add.setBalance": "＋ Sæt saldo",
       "confirm.ok":           "Bekræft",
       "confirm.deleteTitle":  "Slet dette?",
       "confirm.deleteBody":   "Dette kan ikke fortrydes.",
@@ -426,6 +468,42 @@
       "rule.timeOfDay":         "Tidspunkt",
       "rule.allAmount":         "Brug hele kildens saldo",
       "rule.position":          "Position",
+      "start.title":            "Start",
+      "start.now":              "Nu",
+      "start.specific":         "Bestemt dato og tid",
+      "recurring.title":        "Gentages",
+      "recurring.one":          "Engangs",
+      "recurring.unlimited":    "Kontinuerligt (uden grænse)",
+      "recurring.maxLabel":     "Stop efter N forekomster (valgfri)",
+      "recurring.maxPlaceholder":"Tomt = kontinuerligt",
+      "recurring.endAtLabel":   "Stop på dato (valgfri)",
+      "pattern.title":          "Gentager",
+      "pattern.interval":       "Brugerdefineret interval",
+      "pattern.weekdays":       "Bestemte ugedage",
+      "pattern.dayOfPeriod":    "Bestemt dag i måned/år",
+      "pattern.weekdayOfPeriod":"Bestemt ugedag i måned/år",
+      "pattern.direction":      "Position",
+      "pattern.dir.first":      "Første",
+      "pattern.dir.last":       "Sidste",
+      "pattern.dir.nth":        "N'te (fra start)",
+      "pattern.dir.nthLast":    "N'te fra slutningen",
+      "pattern.weekdays.label": "Ugedage",
+      "pattern.day.label":      "Dag",
+      "pattern.weekday.label":  "Ugedag-position",
+      "pattern.ofMonth":        "i hver måned",
+      "pattern.ofYear":         "hvert år",
+      "weekdays.everyDay":      "Hver dag",
+      "weekday.short.mon":      "Man",
+      "weekday.short.tue":      "Tir",
+      "weekday.short.wed":      "Ons",
+      "weekday.short.thu":      "Tor",
+      "weekday.short.fri":      "Fre",
+      "weekday.short.sat":      "Lør",
+      "weekday.short.sun":      "Søn",
+      "validation.patternRequired":  "Vælg et mønster.",
+      "validation.intervalAmount":   "Interval skal være 1 eller mere.",
+      "validation.weekdaysRequired": "Vælg mindst én ugedag.",
+      "validation.unknownPattern":   "Ukendt mønster.",
       "schedule.interval":      "Brugerdefineret interval",
       "schedule.position":      "På en bestemt dag",
       "position.label":         "{ordinal} {day} i hver {period}",
@@ -547,10 +625,12 @@
   function intervalLabel(every) {
     return t("every." + every.unit, { n: every.amount });
   }
-  // Day-of-week constants (Sun = 0, Sat = 6) for legacy migration.
+  // Day-of-week constants for legacy migration helpers.
   const WEEKLY_DOW = { weeklySun: 0, weeklyMon: 1, weeklyTue: 2, weeklyWed: 3, weeklyThu: 4, weeklyFri: 5, weeklySat: 6 };
+  const WEEKDAY_KEYS = ["sun","mon","tue","wed","thu","fri","sat"];
 
-  // Convert legacy schedule strings into the new {schedule: "position", position: {...}} shape.
+  // Legacy normalizer (schedule strings → position object) — kept for safety
+  // for any rule that still has the old shape on load.
   function normalizeLegacySchedule(rule) {
     const s = rule.schedule;
     if (s === undefined || s === null || s === "interval" || s === "position") return;
@@ -563,117 +643,139 @@
     if (p) { rule.schedule = "position"; rule.position = p; }
   }
 
-  // Enumerate all days in the period that contains refTs. Each entry is a Date,
-  // already set to the rule's time-of-day. Returns at most 366.
+  // Convert legacy (schedule + position) into the new rule.pattern shape.
+  function patternFromLegacy(rule) {
+    if (rule.pattern) return rule.pattern;
+    normalizeLegacySchedule(rule);
+    if (!rule.schedule || rule.schedule === "interval") {
+      return { type: "interval", every: rule.every || { amount: 1, unit: "month" } };
+    }
+    if (rule.schedule === "position" && rule.position) {
+      const p = rule.position;
+      if (p.weekday == null && (p.period === "month" || p.period === "year")) {
+        return { type: "dayOfPeriod", period: p.period, fromEnd: !!p.fromEnd, n: p.n || 1 };
+      }
+      if (p.weekday != null && p.period === "week") {
+        return { type: "weekdays", weekdays: [p.weekday] };
+      }
+      if (p.weekday != null && (p.period === "month" || p.period === "year")) {
+        return { type: "weekdayOfPeriod", period: p.period, fromEnd: !!p.fromEnd, n: p.n || 1, weekdays: [p.weekday] };
+      }
+    }
+    return { type: "interval", every: rule.every || { amount: 1, unit: "month" } };
+  }
+
+  function _patternPeriod(pattern) {
+    if (pattern.type === "weekdays") return "week";
+    return pattern.period; // dayOfPeriod / weekdayOfPeriod
+  }
+  function _ruleTimeOfDay(rule) {
+    if (rule.timeOfDay && Number.isInteger(rule.timeOfDay.h)) {
+      return { h: rule.timeOfDay.h, mi: rule.timeOfDay.mi || 0 };
+    }
+    const d = new Date(rule.startAt);
+    return { h: d.getHours(), mi: d.getMinutes() };
+  }
+
+  // Enumerate all days in the period that contains refTs, at the given time-of-day.
   function _daysInPeriod(period, refTs, h, mi) {
     const ref = new Date(refTs);
     const out = [];
     if (period === "week") {
-      // Monday-first; Monday is day 0 of the week.
-      const dow = ref.getDay(); // 0 = Sunday .. 6 = Saturday
+      const dow = ref.getDay();
       const offsetToMon = (dow === 0 ? -6 : 1 - dow);
       const start = new Date(ref.getFullYear(), ref.getMonth(), ref.getDate() + offsetToMon);
-      for (let i = 0; i < 7; i++) {
-        const d = new Date(start.getFullYear(), start.getMonth(), start.getDate() + i, h, mi, 0, 0);
-        out.push(d);
-      }
+      for (let i = 0; i < 7; i++) out.push(new Date(start.getFullYear(), start.getMonth(), start.getDate() + i, h, mi, 0, 0));
     } else if (period === "month") {
       const y = ref.getFullYear(), mo = ref.getMonth();
       const last = new Date(y, mo + 1, 0).getDate();
-      for (let day = 1; day <= last; day++) {
-        out.push(new Date(y, mo, day, h, mi, 0, 0));
-      }
+      for (let day = 1; day <= last; day++) out.push(new Date(y, mo, day, h, mi, 0, 0));
     } else if (period === "year") {
       const y = ref.getFullYear();
       const isLeap = (y % 4 === 0 && y % 100 !== 0) || (y % 400 === 0);
       const total = isLeap ? 366 : 365;
-      for (let i = 0; i < total; i++) {
-        out.push(new Date(y, 0, 1 + i, h, mi, 0, 0));
-      }
+      for (let i = 0; i < total; i++) out.push(new Date(y, 0, 1 + i, h, mi, 0, 0));
     }
     return out;
   }
-
-  // Returns the timestamp of the rule's matching occurrence within the period
-  // containing refTs, or null if the period does not contain a matching day
-  // (e.g. asking for the 5th Tuesday in a month that only has 4).
-  function _occurrenceInPeriod(rule, refTs) {
-    const { period, weekday, n, fromEnd } = rule.position;
-    const s = new Date(rule.startAt);
-    const h = s.getHours(), mi = s.getMinutes();
-    let days = _daysInPeriod(period, refTs, h, mi);
-    if (weekday != null) days = days.filter(d => d.getDay() === weekday);
-    if (fromEnd) days = days.slice().reverse();
-    const pick = days[n - 1];
-    return pick ? pick.getTime() : null;
-  }
-
-  // Advance refTs to a date guaranteed to be in the next period.
   function _nextPeriodRef(period, refTs) {
     const d = new Date(refTs);
-    if (period === "week")  d.setDate(d.getDate() + 7);
+    if (period === "week") d.setDate(d.getDate() + 7);
     else if (period === "month") d.setMonth(d.getMonth() + 1, 1);
     else if (period === "year")  d.setFullYear(d.getFullYear() + 1, 0, 1);
     return d.getTime();
   }
 
-  function ruleFirstOccurrence(rule) {
-    normalizeLegacySchedule(rule);
-    const schedule = rule.schedule || "interval";
-    if (schedule === "interval") return rule.startAt;
-    if (schedule === "position") {
-      let ref = rule.startAt;
-      let safety = 0;
-      while (safety++ < SAFETY_ITERATIONS) {
-        const occ = _occurrenceInPeriod(rule, ref);
-        if (occ != null && occ >= rule.startAt) return occ;
-        ref = _nextPeriodRef(rule.position.period, ref);
-      }
-      return null;
+  // All occurrence timestamps the rule's pattern produces within the period
+  // containing refTs (chronological). May be empty if the pattern doesn't fire
+  // in that period (e.g. 5th Tuesday in a 4-Tuesday month).
+  function _occurrencesInPeriod(rule, refTs) {
+    const pat = rule.pattern || patternFromLegacy(rule);
+    const { h, mi } = _ruleTimeOfDay(rule);
+    if (pat.type === "weekdays") {
+      const wds = pat.weekdays || [];
+      return _daysInPeriod("week", refTs, h, mi).filter(d => wds.includes(d.getDay())).map(d => d.getTime());
     }
-    return rule.startAt;
+    if (pat.type === "dayOfPeriod") {
+      let days = _daysInPeriod(pat.period, refTs, h, mi);
+      if (pat.fromEnd) days = days.slice().reverse();
+      const pick = days[(pat.n || 1) - 1];
+      return pick ? [pick.getTime()] : [];
+    }
+    if (pat.type === "weekdayOfPeriod") {
+      const allDays = _daysInPeriod(pat.period, refTs, h, mi);
+      const out = [];
+      for (const wd of (pat.weekdays || [])) {
+        let days = allDays.filter(d => d.getDay() === wd);
+        if (pat.fromEnd) days = days.slice().reverse();
+        const pick = days[(pat.n || 1) - 1];
+        if (pick) out.push(pick.getTime());
+      }
+      return out.sort((a, b) => a - b);
+    }
+    return [];
   }
 
-  // The n-th occurrence (n=0 is the first). Iterates period-by-period for
-  // position-based schedules, skipping periods that don't contain a matching
-  // day (e.g. months without a 5th Tuesday).
-  function nthOccurrence(rule, n) {
-    normalizeLegacySchedule(rule);
-    const schedule = rule.schedule || "interval";
-    if (schedule === "interval") {
-      if (n === 0) return rule.startAt;
-      return addInterval(rule.startAt, n * rule.every.amount, rule.every.unit);
-    }
-    if (schedule !== "position") return null;
-    const first = ruleFirstOccurrence(rule);
-    if (first == null) return null;
-    if (n === 0) return first;
-    let ref = first;
-    let collected = 0;
+  function ruleFirstOccurrence(rule) {
+    if (rule.recurring === false) return rule.startAt;
+    const pat = rule.pattern || patternFromLegacy(rule);
+    if (pat.type === "interval") return rule.startAt;
+    const period = _patternPeriod(pat);
+    let ref = rule.startAt;
     let safety = 0;
     while (safety++ < SAFETY_ITERATIONS) {
-      ref = _nextPeriodRef(rule.position.period, ref);
-      const occ = _occurrenceInPeriod(rule, ref);
-      if (occ != null) {
-        collected++;
-        if (collected === n) return occ;
+      const occs = _occurrencesInPeriod(rule, ref);
+      for (const ts of occs) {
+        if (ts >= rule.startAt) return ts;
       }
+      ref = _nextPeriodRef(period, ref);
     }
     return null;
   }
 
-  // Human-readable schedule description used in rule rows and previews.
-  function scheduleLabel(rule) {
-    const s = rule.schedule || "interval";
-    if (s === "interval") return intervalLabel(rule.every);
-    if (s === "position") {
-      const { fromEnd, n, weekday, period } = rule.position;
-      const ordinal = ordinalLabel(n, fromEnd);
-      const dayKey = weekday == null ? "weekday.any" : ("weekday." + ["sun","mon","tue","wed","thu","fri","sat"][weekday]);
-      const periodKey = "period." + period;
-      return t("position.label", { ordinal, day: t(dayKey), period: t(periodKey) });
+  // n-th occurrence (n=0 is first). Returns null when no more occurrences
+  // (one-time rule beyond first, or maxOccurrences exhausted).
+  function nthOccurrence(rule, n) {
+    if (rule.recurring === false) return n === 0 ? rule.startAt : null;
+    if (rule.maxOccurrences != null && n >= rule.maxOccurrences) return null;
+    const pat = rule.pattern || patternFromLegacy(rule);
+    if (pat.type === "interval") {
+      if (n === 0) return rule.startAt;
+      return addInterval(rule.startAt, n * pat.every.amount, pat.every.unit);
     }
-    return "";
+    const period = _patternPeriod(pat);
+    let ref = rule.startAt;
+    let safety = 0;
+    let counted = 0;
+    while (safety++ < SAFETY_ITERATIONS) {
+      const occs = _occurrencesInPeriod(rule, ref).filter(ts => ts >= rule.startAt);
+      for (const ts of occs) {
+        if (counted === n) return ts;
+        counted++;
+      }
+      ref = _nextPeriodRef(period, ref);
+    }
+    return null;
   }
 
   // Renders an ordinal phrase, e.g. "1st", "2nd Last", "Sidste", "3. sidste".
@@ -696,29 +798,72 @@
     return ordinalText(n);
   }
 
-  // Reports validity for a position-based schedule.
-  // Returns { ok: bool, level: 'error'|'warn'|null, key: i18n key for the message, vars: {} }.
-  function positionValidity(position) {
-    if (!position) return { ok: false, level: "error", key: "validation.positionRequired" };
-    const { period, weekday, n, fromEnd } = position;
-    if (!Number.isInteger(n) || n < 1) return { ok: false, level: "error", key: "validation.positionTooSmall" };
-    if (period === "week") {
-      if (weekday != null && n > 1)  return { ok: false, level: "error", key: "validation.weekWeekdayOnce" };
-      if (weekday == null && n > 7)  return { ok: false, level: "error", key: "validation.weekDays" };
-    } else if (period === "month") {
-      if (weekday != null && n > 5)  return { ok: false, level: "error", key: "validation.monthWeekdayMax" };
-      if (weekday == null && n > 31) return { ok: false, level: "error", key: "validation.monthDaysMax" };
-      if (weekday != null && n === 5) return { ok: true, level: "warn", key: "validation.monthWeekday5" };
-      if (weekday == null && n > 28)  return { ok: true, level: "warn", key: "validation.monthDayShort", vars: { n } };
-    } else if (period === "year") {
-      if (weekday != null && n > 53)  return { ok: false, level: "error", key: "validation.yearWeekdayMax" };
-      if (weekday == null && n > 366) return { ok: false, level: "error", key: "validation.yearDaysMax" };
-      if (weekday != null && n === 53) return { ok: true, level: "warn", key: "validation.yearWeekday53" };
-      if (weekday == null && n === 366) return { ok: true, level: "warn", key: "validation.yearDay366" };
-    } else {
-      return { ok: false, level: "error", key: "validation.unknownPeriod" };
+  function _weekdayListLabel(weekdays) {
+    return weekdays.slice().sort().map(w => t("weekday.short." + WEEKDAY_KEYS[w])).join(", ");
+  }
+
+  // Human-readable schedule description used in rule rows and previews.
+  function scheduleLabel(rule) {
+    if (rule.recurring === false) return t("recurring.one");
+    const pat = rule.pattern || patternFromLegacy(rule);
+    if (pat.type === "interval") return intervalLabel(pat.every);
+    if (pat.type === "weekdays") {
+      const wds = pat.weekdays || [];
+      if (wds.length === 7) return t("weekdays.everyDay");
+      return _weekdayListLabel(wds);
     }
-    return { ok: true, level: null };
+    const ordinal = ordinalLabel(pat.n || 1, !!pat.fromEnd);
+    if (pat.type === "dayOfPeriod") {
+      return t("position.label", { ordinal, day: t("weekday.any"), period: t("period." + pat.period) });
+    }
+    if (pat.type === "weekdayOfPeriod") {
+      const wds = pat.weekdays || [];
+      const label = wds.length === 1
+        ? t("weekday." + WEEKDAY_KEYS[wds[0]])
+        : _weekdayListLabel(wds);
+      return t("position.label", { ordinal, day: label, period: t("period." + pat.period) });
+    }
+    return "";
+  }
+
+  // Reports validity for a pattern. Returns { ok, level, key, vars? }.
+  function patternValidity(pat) {
+    if (!pat) return { ok: false, level: "error", key: "validation.patternRequired" };
+    if (pat.type === "interval") {
+      const a = pat.every?.amount;
+      if (!Number.isInteger(a) || a < 1) return { ok: false, level: "error", key: "validation.intervalAmount" };
+      return { ok: true, level: null };
+    }
+    if (pat.type === "weekdays") {
+      if (!pat.weekdays || !pat.weekdays.length) return { ok: false, level: "error", key: "validation.weekdaysRequired" };
+      return { ok: true, level: null };
+    }
+    if (pat.type === "dayOfPeriod") {
+      const n = pat.n;
+      if (!Number.isInteger(n) || n < 1) return { ok: false, level: "error", key: "validation.positionTooSmall" };
+      if (pat.period === "month") {
+        if (n > 31) return { ok: false, level: "error", key: "validation.monthDaysMax" };
+        if (n > 28) return { ok: true,  level: "warn",  key: "validation.monthDayShort", vars: { n } };
+      } else if (pat.period === "year") {
+        if (n > 366) return { ok: false, level: "error", key: "validation.yearDaysMax" };
+        if (n === 366) return { ok: true, level: "warn", key: "validation.yearDay366" };
+      }
+      return { ok: true, level: null };
+    }
+    if (pat.type === "weekdayOfPeriod") {
+      if (!pat.weekdays || !pat.weekdays.length) return { ok: false, level: "error", key: "validation.weekdaysRequired" };
+      const n = pat.n;
+      if (!Number.isInteger(n) || n < 1) return { ok: false, level: "error", key: "validation.positionTooSmall" };
+      if (pat.period === "month") {
+        if (n > 5) return { ok: false, level: "error", key: "validation.monthWeekdayMax" };
+        if (n === 5) return { ok: true, level: "warn", key: "validation.monthWeekday5" };
+      } else if (pat.period === "year") {
+        if (n > 53) return { ok: false, level: "error", key: "validation.yearWeekdayMax" };
+        if (n === 53) return { ok: true, level: "warn", key: "validation.yearWeekday53" };
+      }
+      return { ok: true, level: null };
+    }
+    return { ok: false, level: "error", key: "validation.unknownPattern" };
   }
 
   function endOfWeek(now) {
@@ -805,7 +950,7 @@
   const defaultState = () => {
     const lang = (navigator.language || "en").toLowerCase().startsWith("da") ? "da" : "en";
     return {
-      schemaVersion: 3,
+      schemaVersion: 4,
       onboardingDone: false,
       settings: { lang, theme: "auto" },
       currencies: defaultCurrencies(lang),
@@ -827,14 +972,14 @@
   // re-applied.
   function deriveOccurrenceCount(r) {
     if (!r.lastRunAt) return 0;
-    const sched = r.schedule || "interval";
+    const pat = r.pattern || patternFromLegacy(r);
     let cutoff = r.lastRunAt;
-    if (sched === "interval" && !UNIT_MS[r.every?.unit]) {
-      if (r.every?.unit === "month") cutoff += (r.every?.amount || 1) * 30  * UNIT_MS.day;
-      if (r.every?.unit === "year")  cutoff += (r.every?.amount || 1) * 365 * UNIT_MS.day;
+    if (pat.type === "interval" && !UNIT_MS[pat.every?.unit]) {
+      if (pat.every?.unit === "month") cutoff += (pat.every?.amount || 1) * 30  * UNIT_MS.day;
+      if (pat.every?.unit === "year")  cutoff += (pat.every?.amount || 1) * 365 * UNIT_MS.day;
     }
     let n = 0, safety = 0;
-    while (safety++ < SAFETY_ITERATIONS && nthOccurrence(r, n) <= cutoff) n++;
+    while (safety++ < SAFETY_ITERATIONS && nthOccurrence(r, n) != null && nthOccurrence(r, n) <= cutoff) n++;
     return n;
   }
 
@@ -878,10 +1023,16 @@
     loaded.rules.forEach(r => {
       if (r.active === undefined) r.active = true;
       if (r.schedule == null) r.schedule = "interval";
-      // v3: convert legacy schedule strings (firstOfMonth/lastOfMonth/firstOfYear/
-      // lastOfYear/weeklyMon..weeklySun) to the new {schedule:"position", position:{...}} shape.
       normalizeLegacySchedule(r);
       if (r.amountMode == null) r.amountMode = "fixed";
+      // v4: hoist legacy {schedule + position} into rule.pattern + rule.recurring + rule.timeOfDay.
+      if (r.recurring === undefined) r.recurring = true;
+      if (r.maxOccurrences === undefined) r.maxOccurrences = null;
+      if (!r.pattern) r.pattern = patternFromLegacy(r);
+      if (!r.timeOfDay) {
+        const d = new Date(r.startAt);
+        r.timeOfDay = { h: d.getHours(), mi: d.getMinutes() };
+      }
       if (r.occurrenceCount == null) r.occurrenceCount = deriveOccurrenceCount(r);
     });
     (loaded.transactions || []).forEach(tx => {
@@ -892,13 +1043,12 @@
     // "one full interval" buffer. Re-derive those specifically.
     if (fromVersion < 2) {
       loaded.rules.forEach(r => {
-        const sched = r.schedule || "interval";
-        if (r.lastRunAt && sched === "interval" && UNIT_MS[r.every?.unit]) {
+        if (r.lastRunAt && r.pattern?.type === "interval" && UNIT_MS[r.pattern.every?.unit]) {
           r.occurrenceCount = deriveOccurrenceCount(r);
         }
       });
     }
-    loaded.schemaVersion = 3;
+    loaded.schemaVersion = 4;
     return loaded;
   }
 
@@ -1484,19 +1634,31 @@
   /* ============================================================
      ACTION CHOOSER
      ============================================================ */
-  function openChooser() {
+  // presetAccountId optional. When provided, that account is preselected
+  // as source/destination on tx/rule and a "Set balance" entry appears.
+  function openChooser(presetAccountId) {
     const dlg = $("#chooser");
+    const setBalanceBtn = $("#chooseSetBalance");
+    const preset = presetAccountId ? accountById(presetAccountId) : null;
+    setBalanceBtn.hidden = !preset;
     dlg.hidden = false;
     const cleanup = () => {
       dlg.hidden = true;
       $("#chooseAccount").onclick = null;
       $("#chooseTx").onclick = null;
       $("#chooseRule").onclick = null;
+      setBalanceBtn.onclick = null;
       $$("[data-cancel]", dlg).forEach(b => b.onclick = null);
     };
     $("#chooseAccount").onclick = () => { cleanup(); openAccountModal(); };
-    $("#chooseTx").onclick   = () => { cleanup(); openTxModal(); };
-    $("#chooseRule").onclick = () => { cleanup(); openRuleModal(); };
+    $("#chooseTx").onclick   = () => { cleanup(); openTxModal(null, presetAccountId); };
+    $("#chooseRule").onclick = () => { cleanup(); openRuleModal(null, presetAccountId); };
+    setBalanceBtn.onclick = () => {
+      cleanup();
+      if (!preset) return;
+      const ccy = primaryCurrency(preset);
+      openSetBalanceModal(preset, ccy);
+    };
     $$("[data-cancel]", dlg).forEach(b => b.onclick = cleanup);
   }
 
@@ -1793,6 +1955,35 @@
   let editingRuleId = null;
   let ruleType = "expense";
 
+  // Tracks "Now" vs "Specific" for the Start segmented selector.
+  let ruleStartMode = "now";
+
+  function _buildWeekdayToggles(containerId, selectedSet) {
+    const container = $(containerId);
+    container.innerHTML = "";
+    const days = [
+      { value: 1, key: "mon" },
+      { value: 2, key: "tue" },
+      { value: 3, key: "wed" },
+      { value: 4, key: "thu" },
+      { value: 5, key: "fri" },
+      { value: 6, key: "sat" },
+      { value: 0, key: "sun" },
+    ];
+    days.forEach(d => {
+      const label = el("label", {},
+        el("input", { type: "checkbox", value: String(d.value), checked: selectedSet.has(d.value) ? true : false }),
+        t("weekday.short." + d.key)
+      );
+      container.appendChild(label);
+    });
+  }
+  function _readWeekdayToggles(containerId) {
+    return $$("input[type=checkbox]", $(containerId))
+      .filter(c => c.checked)
+      .map(c => parseInt(c.value, 10));
+  }
+
   function openRuleModal(rule, presetAccountId) {
     editingRuleId = rule?.id || null;
     ruleType = rule?.type || "expense";
@@ -1801,123 +1992,199 @@
     refreshRuleAccountOptions(rule, presetAccountId);
     refreshRuleCategoryOptions();
     fillRuleCurrencyOptions(rule?.currency);
-    $("#ruleLabel").value      = rule?.label || "";
-    $("#ruleAmount").value     = rule?.amount ?? "";
+    $("#ruleLabel").value       = rule?.label || "";
+    $("#ruleAmount").value      = rule?.amount ?? "";
     $("#ruleAllAmount").checked = (rule?.amountMode === "all");
-    const sched = rule?.schedule || "interval";
-    $("#ruleSchedule").value   = sched;
-    $("#ruleEveryAmount").value = rule?.every?.amount ?? 1;
-    $("#ruleEveryUnit").value   = rule?.every?.unit   ?? "month";
-    // Position controls
-    const pos = rule?.position || { fromEnd: false, n: 1, weekday: null, period: "month" };
-    $("#rulePosDirection").value = pos.fromEnd ? "end" : "start";
-    $("#rulePosN").value         = pos.n ?? 1;
-    $("#rulePosWeekday").value   = pos.weekday == null ? "" : String(pos.weekday);
-    $("#rulePosPeriod").value    = pos.period || "month";
 
+    // Start mode: only show "Now" by default for a brand-new rule. Editing
+    // an existing rule keeps the explicit timestamp.
+    ruleStartMode = rule ? "specific" : "now";
+    $$("#ruleStartSeg button").forEach(b => b.classList.toggle("is-active", b.dataset.mode === ruleStartMode));
     const baseTs = rule?.startAt ?? Date.now();
-    $("#ruleStartAt").value     = toLocalInputValue(baseTs);
-    const baseDate = new Date(baseTs);
+    $("#ruleStartAt").value = toLocalInputValue(baseTs);
+
+    $("#ruleRecurring").checked = rule ? rule.recurring !== false : true;
+    $("#ruleMaxOccurrences").value = rule?.maxOccurrences ?? "";
+
+    // Pattern setup
+    const pat = rule?.pattern || patternFromLegacy(rule || {});
+    $("#rulePatternType").value = pat.type || "interval";
+    $("#ruleEveryAmount").value = pat.every?.amount ?? 1;
+    $("#ruleEveryUnit").value   = pat.every?.unit ?? "month";
+
+    // Day-of-period defaults
+    let dopDir = "first";
+    let dopN = 2, dopPeriod = "month";
+    if (pat.type === "dayOfPeriod") {
+      dopPeriod = pat.period;
+      if (pat.fromEnd && (pat.n || 1) === 1) dopDir = "last";
+      else if (!pat.fromEnd && (pat.n || 1) === 1) dopDir = "first";
+      else if (pat.fromEnd) { dopDir = "nthLast"; dopN = pat.n || 2; }
+      else { dopDir = "nth"; dopN = pat.n || 2; }
+    }
+    $("#ruleDopDirection").value = dopDir;
+    $("#ruleDopN").value = dopN;
+    $("#ruleDopPeriod").value = dopPeriod;
+
+    // Weekday-of-period defaults
+    let wdopDir = "first";
+    let wdopN = 2, wdopPeriod = "month", wdopWeekdays = new Set();
+    if (pat.type === "weekdayOfPeriod") {
+      wdopPeriod = pat.period;
+      wdopWeekdays = new Set(pat.weekdays || []);
+      if (pat.fromEnd && (pat.n || 1) === 1) wdopDir = "last";
+      else if (!pat.fromEnd && (pat.n || 1) === 1) wdopDir = "first";
+      else if (pat.fromEnd) { wdopDir = "nthLast"; wdopN = pat.n || 2; }
+      else { wdopDir = "nth"; wdopN = pat.n || 2; }
+    }
+    $("#ruleWdopDirection").value = wdopDir;
+    $("#ruleWdopN").value = wdopN;
+    $("#ruleWdopPeriod").value = wdopPeriod;
+    _buildWeekdayToggles("#ruleWdopWeekdaysList", wdopWeekdays);
+
+    // Pattern: weekdays
+    const wdaysSet = (pat.type === "weekdays") ? new Set(pat.weekdays || []) : new Set();
+    _buildWeekdayToggles("#ruleWeekdaysList", wdaysSet);
+
+    // Time of day
+    const tod = rule?.timeOfDay || (() => {
+      const d = new Date(baseTs);
+      return { h: d.getHours(), mi: d.getMinutes() };
+    })();
     const pad = n => String(n).padStart(2, "0");
-    $("#ruleTimeOfDay").value   = `${pad(baseDate.getHours())}:${pad(baseDate.getMinutes())}`;
-    $("#ruleEndAt").value       = rule?.endAt ? toLocalInputValue(rule.endAt) : "";
-    $("#ruleCategory").value    = rule?.categoryId || "";
-    $("#ruleActive").checked    = rule ? !!rule.active : true;
-    $("#deleteRuleBtn").hidden  = !rule;
-    updateRuleScheduleUI();
+    $("#ruleTimeOfDay").value = `${pad(tod.h)}:${pad(tod.mi)}`;
+
+    $("#ruleEndAt").value    = rule?.endAt ? toLocalInputValue(rule.endAt) : "";
+    $("#ruleCategory").value = rule?.categoryId || "";
+    $("#ruleActive").checked = rule ? !!rule.active : true;
+    $("#deleteRuleBtn").hidden = !rule;
+
+    updateRulePatternUI();
     updateRuleAmountUI();
     $("#ruleModal").hidden = false;
     setTimeout(() => $("#ruleLabel").focus(), 60);
   }
-  // Compose a startAt timestamp from the form, choosing the date+time picker
-  // for interval mode and time-only (today) for position/special modes.
-  function ruleFormStartAt() {
-    const sched = $("#ruleSchedule").value || "interval";
-    if (sched === "interval") return fromLocalInputValue($("#ruleStartAt").value) || Date.now();
-    const time = $("#ruleTimeOfDay").value || "09:00";
-    const [hh, mm] = time.split(":").map(n => parseInt(n, 10));
-    const d = new Date();
-    d.setHours(isNaN(hh) ? 9 : hh, isNaN(mm) ? 0 : mm, 0, 0);
-    return d.getTime();
-  }
-  function ruleFormPosition() {
-    return {
-      fromEnd:  $("#rulePosDirection").value === "end",
-      n:        Math.max(1, parseInt($("#rulePosN").value, 10) || 1),
-      weekday:  $("#rulePosWeekday").value === "" ? null : parseInt($("#rulePosWeekday").value, 10),
-      period:   $("#rulePosPeriod").value || "month",
-    };
-  }
-  // Hide amount input + currency when "All balance" is checked. Always show
-  // currency (it determines which currency on the source to drain).
+
+  // Hide amount input when "All balance" is on. Currency selector stays.
   function updateRuleAmountUI() {
-    const all = $("#ruleAllAmount").checked;
-    const allowAll = ruleType !== "income";  // income has no fromAccount
+    const allowAll = ruleType !== "income";
     $("#ruleAllAmountField").hidden = !allowAll;
     if (!allowAll) $("#ruleAllAmount").checked = false;
     $("#ruleAmount").disabled = $("#ruleAllAmount").checked;
     $("#ruleAmount").required = !$("#ruleAllAmount").checked;
-    if ($("#ruleAllAmount").checked) {
-      $("#ruleAmount").placeholder = t("rule.allAmount");
-    } else {
-      $("#ruleAmount").placeholder = "";
-    }
+    $("#ruleAmount").placeholder = $("#ruleAllAmount").checked ? t("rule.allAmount") : "";
   }
-  function updateRuleScheduleUI() {
-    const sched = $("#ruleSchedule").value || "interval";
-    const isInterval = sched === "interval";
-    const isPosition = sched === "position";
-    $("#ruleEveryField").hidden    = !isInterval;
-    $("#ruleStartAtField").hidden  = !isInterval;
-    $("#rulePositionField").hidden = !isPosition;
-    $("#ruleTimeField").hidden     = isInterval;
 
-    // Position validation
-    const valEl = $("#rulePosValidation");
-    if (isPosition) {
-      const pos = ruleFormPosition();
-      const v = positionValidity(pos);
-      valEl.classList.remove("position-warn", "position-error");
-      if (!v.ok) {
-        valEl.hidden = false;
-        valEl.classList.add("position-error");
-        valEl.textContent = t(v.key, v.vars || {});
-      } else if (v.level === "warn") {
-        valEl.hidden = false;
-        valEl.classList.add("position-warn");
-        valEl.textContent = t(v.key, v.vars || {});
-      } else {
-        valEl.hidden = true;
-      }
-      // Disable save when invalid
-      $$("#ruleForm button[type=submit]").forEach(b => b.disabled = !v.ok);
+  // startAt for the form: now or the picker's value.
+  function ruleFormStartAt() {
+    if (ruleStartMode === "now") return Date.now();
+    return fromLocalInputValue($("#ruleStartAt").value) || Date.now();
+  }
+  function ruleFormTimeOfDay() {
+    const time = $("#ruleTimeOfDay").value || "09:00";
+    const [hh, mm] = time.split(":").map(n => parseInt(n, 10));
+    return { h: isNaN(hh) ? 9 : hh, mi: isNaN(mm) ? 0 : mm };
+  }
+  // Builds a pattern object from the current form state.
+  function ruleFormPattern() {
+    const type = $("#rulePatternType").value;
+    if (type === "interval") {
+      return {
+        type: "interval",
+        every: { amount: Math.max(1, parseInt($("#ruleEveryAmount").value, 10) || 1), unit: $("#ruleEveryUnit").value || "month" },
+      };
+    }
+    if (type === "weekdays") {
+      return { type: "weekdays", weekdays: _readWeekdayToggles("#ruleWeekdaysList") };
+    }
+    if (type === "dayOfPeriod") {
+      const dir = $("#ruleDopDirection").value;
+      const fromEnd = (dir === "last" || dir === "nthLast");
+      const n = (dir === "first" || dir === "last") ? 1 : Math.max(1, parseInt($("#ruleDopN").value, 10) || 1);
+      return { type: "dayOfPeriod", period: $("#ruleDopPeriod").value, fromEnd, n };
+    }
+    if (type === "weekdayOfPeriod") {
+      const dir = $("#ruleWdopDirection").value;
+      const fromEnd = (dir === "last" || dir === "nthLast");
+      const n = (dir === "first" || dir === "last") ? 1 : Math.max(1, parseInt($("#ruleWdopN").value, 10) || 1);
+      return {
+        type: "weekdayOfPeriod",
+        period: $("#ruleWdopPeriod").value,
+        fromEnd, n,
+        weekdays: _readWeekdayToggles("#ruleWdopWeekdaysList"),
+      };
+    }
+    return null;
+  }
+
+  function updateRulePatternUI() {
+    // Start specific datetime field
+    $("#ruleStartAtField").hidden = (ruleStartMode !== "specific");
+
+    // Recurring fields
+    const isRecurring = $("#ruleRecurring").checked;
+    $("#ruleRecurringFields").hidden = !isRecurring;
+
+    if (!isRecurring) {
+      $$("#ruleForm button[type=submit]").forEach(b => b.disabled = false);
+      _updatePreview();
+      return;
+    }
+
+    const type = $("#rulePatternType").value;
+    $("#ruleIntervalField").hidden        = (type !== "interval");
+    $("#ruleWeekdaysField").hidden        = (type !== "weekdays");
+    $("#ruleDayOfPeriodField").hidden     = (type !== "dayOfPeriod");
+    $("#ruleWdopField").hidden            = (type !== "weekdayOfPeriod");
+    $("#ruleTimeField").hidden            = (type === "interval");
+
+    // Show/hide N inputs depending on First/Last/Nth/Nth-last
+    const dopDir = $("#ruleDopDirection").value;
+    $("#ruleDopN").hidden = (dopDir === "first" || dopDir === "last");
+    const wdopDir = $("#ruleWdopDirection").value;
+    $("#ruleWdopN").hidden = (wdopDir === "first" || wdopDir === "last");
+
+    // Validation
+    const pattern = ruleFormPattern();
+    const v = patternValidity(pattern);
+    const valEl = $("#rulePatternValidation");
+    valEl.classList.remove("position-warn", "position-error");
+    if (!v.ok) {
+      valEl.hidden = false;
+      valEl.classList.add("position-error");
+      valEl.textContent = t(v.key, v.vars || {});
+    } else if (v.level === "warn") {
+      valEl.hidden = false;
+      valEl.classList.add("position-warn");
+      valEl.textContent = t(v.key, v.vars || {});
     } else {
       valEl.hidden = true;
-      $$("#ruleForm button[type=submit]").forEach(b => b.disabled = false);
     }
+    $$("#ruleForm button[type=submit]").forEach(b => b.disabled = !v.ok);
 
-    // Live "First occurrence" preview
+    _updatePreview();
+  }
+  function _updatePreview() {
+    const previewEl = $("#ruleFirstPreview");
+    const isRecurring = $("#ruleRecurring").checked;
     const startAt = ruleFormStartAt();
-    const everyAmt = Math.max(1, parseInt($("#ruleEveryAmount").value, 10) || 1);
-    const everyUnit = $("#ruleEveryUnit").value || "month";
-    const tempRule = {
-      schedule: sched, startAt,
-      every: { amount: everyAmt, unit: everyUnit },
-      position: isPosition ? ruleFormPosition() : undefined,
-    };
-    const first = (sched === "position" && !positionValidity(tempRule.position).ok) ? null : ruleFirstOccurrence(tempRule);
-    const previewText = first != null ? t("rule.firstWillBe", { date: fmtDateTime(first) }) : "";
-    const previewEl1 = $("#ruleFirstPreview");
-    const previewEl2 = $("#ruleFirstPreview2");
-    if (isInterval) {
-      previewEl1.textContent = "";
-      previewEl1.hidden = true;
-      previewEl2.hidden = true;
-    } else {
-      previewEl1.hidden = true;
-      previewEl2.hidden = false;
-      previewEl2.textContent = previewText;
+    if (!isRecurring) {
+      previewEl.hidden = false;
+      previewEl.textContent = t("rule.firstWillBe", { date: fmtDateTime(startAt) });
+      return;
     }
+    const pattern = ruleFormPattern();
+    const v = patternValidity(pattern);
+    if (!v.ok) { previewEl.hidden = true; return; }
+    const { h, mi } = ruleFormTimeOfDay();
+    const temp = {
+      recurring: true, startAt, pattern,
+      timeOfDay: { h, mi },
+    };
+    const first = ruleFirstOccurrence(temp);
+    if (first == null) { previewEl.hidden = true; return; }
+    previewEl.hidden = false;
+    previewEl.textContent = t("rule.firstWillBe", { date: fmtDateTime(first) });
   }
   function closeRuleModal() {
     $("#ruleModal").hidden = true;
@@ -1958,70 +2225,84 @@
   }
   function bindRuleModal() {
     $$("[data-close-modal]", $("#ruleModal")).forEach(b => b.onclick = closeRuleModal);
-    $$("#ruleTypeSeg button").forEach(b => b.onclick = () => { ruleType = b.dataset.type; updateRuleTypeUI(); updateRuleScheduleUI(); });
-    $("#ruleSchedule").addEventListener("change", updateRuleScheduleUI);
-    $("#ruleStartAt").addEventListener("input", updateRuleScheduleUI);
-    $("#ruleTimeOfDay").addEventListener("input", updateRuleScheduleUI);
-    $("#ruleEveryAmount").addEventListener("input", updateRuleScheduleUI);
-    $("#ruleEveryUnit").addEventListener("change", updateRuleScheduleUI);
-    $("#rulePosDirection").addEventListener("change", updateRuleScheduleUI);
-    $("#rulePosN").addEventListener("input", updateRuleScheduleUI);
-    $("#rulePosWeekday").addEventListener("change", updateRuleScheduleUI);
-    $("#rulePosPeriod").addEventListener("change", updateRuleScheduleUI);
+    $$("#ruleTypeSeg button").forEach(b => b.onclick = () => { ruleType = b.dataset.type; updateRuleTypeUI(); updateRulePatternUI(); });
+    $$("#ruleStartSeg button").forEach(b => b.onclick = () => {
+      ruleStartMode = b.dataset.mode;
+      $$("#ruleStartSeg button").forEach(x => x.classList.toggle("is-active", x === b));
+      updateRulePatternUI();
+    });
+    $("#ruleStartAt").addEventListener("input", updateRulePatternUI);
+    $("#ruleRecurring").addEventListener("change", updateRulePatternUI);
+    $("#ruleMaxOccurrences").addEventListener("input", updateRulePatternUI);
+    $("#rulePatternType").addEventListener("change", updateRulePatternUI);
+    $("#ruleEveryAmount").addEventListener("input", updateRulePatternUI);
+    $("#ruleEveryUnit").addEventListener("change", updateRulePatternUI);
+    $("#ruleDopDirection").addEventListener("change", updateRulePatternUI);
+    $("#ruleDopN").addEventListener("input", updateRulePatternUI);
+    $("#ruleDopPeriod").addEventListener("change", updateRulePatternUI);
+    $("#ruleWdopDirection").addEventListener("change", updateRulePatternUI);
+    $("#ruleWdopN").addEventListener("input", updateRulePatternUI);
+    $("#ruleWdopPeriod").addEventListener("change", updateRulePatternUI);
+    $("#ruleTimeOfDay").addEventListener("input", updateRulePatternUI);
+    $("#ruleWeekdaysList").addEventListener("change", updateRulePatternUI);
+    $("#ruleWdopWeekdaysList").addEventListener("change", updateRulePatternUI);
     $("#ruleAllAmount").addEventListener("change", updateRuleAmountUI);
 
     $("#ruleForm").onsubmit = (e) => {
       e.preventDefault();
       const allMode = $("#ruleAllAmount").checked && ruleType !== "income";
-      const amount = allMode ? 0 : parseFloat($("#ruleAmount").value);
-      if (!allMode && (isNaN(amount) || amount <= 0)) return;
+      const formAmount = parseFloat($("#ruleAmount").value);
+      if (!allMode && (isNaN(formAmount) || formAmount <= 0)) return;
+      const amount = allMode ? 0 : formAmount;
       const currency = $("#ruleCurrency").value;
-      const schedule = $("#ruleSchedule").value || "interval";
-      const everyAmt = Math.max(1, parseInt($("#ruleEveryAmount").value, 10) || 1);
-      const everyUnit = $("#ruleEveryUnit").value;
       const startAt = ruleFormStartAt();
       const endAt = fromLocalInputValue($("#ruleEndAt").value) || null;
       const categoryId = $("#ruleCategory").value || null;
       const label = $("#ruleLabel").value.trim();
       const active = $("#ruleActive").checked;
+      const recurring = $("#ruleRecurring").checked;
+      const maxOccurrencesParsed = parseInt($("#ruleMaxOccurrences").value, 10);
+      const maxOccurrences = (recurring && Number.isFinite(maxOccurrencesParsed) && maxOccurrencesParsed > 0) ? maxOccurrencesParsed : null;
       const fromAccountId = (ruleType === "income") ? null : $("#ruleFrom").value;
       const toAccountId   = (ruleType === "expense") ? null : $("#ruleTo").value;
       if (ruleType === "transfer" && fromAccountId === toAccountId) {
         alert("From and To must differ.");
         return;
       }
-      // Block save for invalid position schedules.
-      if (schedule === "position") {
-        const v = positionValidity(ruleFormPosition());
+      let pattern = null;
+      let timeOfDay = null;
+      if (recurring) {
+        pattern = ruleFormPattern();
+        const v = patternValidity(pattern);
         if (!v.ok) return;
+        timeOfDay = ruleFormTimeOfDay();
       }
-      const position = (schedule === "position") ? ruleFormPosition() : null;
       const amountMode = allMode ? "all" : "fixed";
 
       if (editingRuleId) {
         const r = state.rules.find(x => x.id === editingRuleId);
         if (r) {
-          const scheduleChanged = r.schedule !== schedule
-            || r.startAt !== startAt
-            || (schedule === "interval" && (r.every?.amount !== everyAmt || r.every?.unit !== everyUnit))
-            || (schedule === "position" && JSON.stringify(r.position || {}) !== JSON.stringify(position));
+          const oldKey = JSON.stringify({ recurring: r.recurring, startAt: r.startAt, pattern: r.pattern, timeOfDay: r.timeOfDay });
+          const newKey = JSON.stringify({ recurring, startAt, pattern, timeOfDay });
+          const scheduleChanged = (oldKey !== newKey);
           Object.assign(r, {
             type: ruleType, fromAccountId, toAccountId, amount, currency,
-            schedule,
-            every: { amount: everyAmt, unit: everyUnit },
-            position,
+            recurring, maxOccurrences,
+            pattern, timeOfDay,
             amountMode,
             startAt, endAt, categoryId, label, active,
           });
-          // If the schedule itself moved, recompute occurrenceCount from the
-          // last applied transaction so we don't double-apply or skip.
           if (scheduleChanged) {
             const lastApplied = state.transactions
               .filter(tx => tx.ruleId === r.id && tx.status === "applied")
               .reduce((m, tx) => Math.max(m, tx.at), 0);
             if (lastApplied) {
               let n = 0, safety = 0;
-              while (safety++ < SAFETY_ITERATIONS && nthOccurrence(r, n) <= lastApplied) n++;
+              while (safety++ < SAFETY_ITERATIONS) {
+                const ts = nthOccurrence(r, n);
+                if (ts == null || ts > lastApplied) break;
+                n++;
+              }
               r.occurrenceCount = n;
               r.lastRunAt = lastApplied;
             } else {
@@ -2035,9 +2316,8 @@
         state.rules.push({
           id: cryptoId(),
           type: ruleType, fromAccountId, toAccountId, amount, currency,
-          schedule,
-          every: { amount: everyAmt, unit: everyUnit },
-          position,
+          recurring, maxOccurrences,
+          pattern, timeOfDay,
           amountMode,
           startAt, endAt,
           lastRunAt: null,
@@ -3034,7 +3314,7 @@
     };
     $("#detailAddBtn").onclick = () => {
       const id = state.detailAccountId;
-      if (id) openTxModal(null, id);
+      if (id) openChooser(id);
     };
     $("#emptyCta").onclick = () => openAccountModal();
 

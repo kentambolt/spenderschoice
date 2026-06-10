@@ -336,70 +336,113 @@
         <span class="toggle-label" data-i18n="rule.allAmount">Use the entire source balance</span>
       </label>
 
-      <label class="field">
-        <span data-i18n="rule.schedule">Schedule</span>
-        <select id="ruleSchedule">
-          <option value="interval" data-i18n="schedule.interval">Custom interval</option>
-          <option value="position" data-i18n="schedule.position">On a specific day</option>
-        </select>
-      </label>
-
-      <fieldset class="field field-row" id="ruleEveryField">
-        <legend data-i18n="rule.every">Repeat every</legend>
-        <input type="number" id="ruleEveryAmount" min="1" step="1" value="1" />
-        <select id="ruleEveryUnit">
-          <option value="minute" data-i18n="unit.minute">minute(s)</option>
-          <option value="hour"   data-i18n="unit.hour">hour(s)</option>
-          <option value="day"    data-i18n="unit.day">day(s)</option>
-          <option value="week"   data-i18n="unit.week">week(s)</option>
-          <option value="month" selected data-i18n="unit.month">month(s)</option>
-          <option value="year"   data-i18n="unit.year">year(s)</option>
-        </select>
-      </fieldset>
-
-      <div class="field" id="rulePositionField" hidden>
-        <span data-i18n="rule.position">Position</span>
-        <div class="position-grid">
-          <select id="rulePosDirection">
-            <option value="start" data-i18n="position.fromStart">From start</option>
-            <option value="end"   data-i18n="position.fromEnd">From end</option>
-          </select>
-          <input type="number" id="rulePosN" min="1" max="366" value="1" />
-          <select id="rulePosWeekday">
-            <option value=""   data-i18n="weekday.any">day</option>
-            <option value="1"  data-i18n="weekday.mon">Monday</option>
-            <option value="2"  data-i18n="weekday.tue">Tuesday</option>
-            <option value="3"  data-i18n="weekday.wed">Wednesday</option>
-            <option value="4"  data-i18n="weekday.thu">Thursday</option>
-            <option value="5"  data-i18n="weekday.fri">Friday</option>
-            <option value="6"  data-i18n="weekday.sat">Saturday</option>
-            <option value="0"  data-i18n="weekday.sun">Sunday</option>
-          </select>
-          <select id="rulePosPeriod">
-            <option value="week"  data-i18n="period.week">week</option>
-            <option value="month" selected data-i18n="period.month">month</option>
-            <option value="year"  data-i18n="period.year">year</option>
-          </select>
+      <!-- Start: Now / Specific date+time -->
+      <div class="field">
+        <span data-i18n="start.title">Start</span>
+        <div class="type-seg" id="ruleStartSeg">
+          <button type="button" data-mode="now"      class="is-active" data-i18n="start.now">Now</button>
+          <button type="button" data-mode="specific" data-i18n="start.specific">Specific date &amp; time</button>
         </div>
-        <small id="rulePosValidation" class="muted small" hidden></small>
       </div>
-
-      <label class="field" id="ruleStartAtField">
-        <span data-i18n="rule.startAt">First occurrence</span>
+      <label class="field" id="ruleStartAtField" hidden>
         <input type="datetime-local" id="ruleStartAt" />
+      </label>
+
+      <!-- Recurring toggle -->
+      <label class="toggle">
+        <input type="checkbox" id="ruleRecurring" checked />
+        <span class="toggle-slider"></span>
+        <span class="toggle-label" data-i18n="recurring.title">Recurring</span>
+      </label>
+
+      <div id="ruleRecurringFields">
+        <label class="field">
+          <span data-i18n="recurring.maxLabel">Stop after N occurrences (optional)</span>
+          <input type="number" id="ruleMaxOccurrences" min="1" step="1" data-i18n-placeholder="recurring.maxPlaceholder" placeholder="Leave blank for continuous" />
+        </label>
+
+        <label class="field">
+          <span data-i18n="pattern.title">Repeats</span>
+          <select id="rulePatternType">
+            <option value="interval"        data-i18n="pattern.interval">Custom interval</option>
+            <option value="weekdays"        data-i18n="pattern.weekdays">Specific weekday(s)</option>
+            <option value="dayOfPeriod"     data-i18n="pattern.dayOfPeriod">A specific day of month or year</option>
+            <option value="weekdayOfPeriod" data-i18n="pattern.weekdayOfPeriod">A specific weekday of month or year</option>
+          </select>
+        </label>
+
+        <!-- Pattern: interval -->
+        <fieldset class="field field-row" id="ruleIntervalField">
+          <legend data-i18n="rule.every">Repeat every</legend>
+          <input type="number" id="ruleEveryAmount" min="1" step="1" value="1" />
+          <select id="ruleEveryUnit">
+            <option value="minute" data-i18n="unit.minute">minute(s)</option>
+            <option value="hour"   data-i18n="unit.hour">hour(s)</option>
+            <option value="day"    data-i18n="unit.day">day(s)</option>
+            <option value="week"   data-i18n="unit.week">week(s)</option>
+            <option value="month" selected data-i18n="unit.month">month(s)</option>
+            <option value="year"   data-i18n="unit.year">year(s)</option>
+          </select>
+        </fieldset>
+
+        <!-- Pattern: weekdays -->
+        <div class="field" id="ruleWeekdaysField" hidden>
+          <span data-i18n="pattern.weekdays.label">Weekdays</span>
+          <div class="weekday-toggles" id="ruleWeekdaysList"></div>
+        </div>
+
+        <!-- Pattern: day of period -->
+        <div class="field" id="ruleDayOfPeriodField" hidden>
+          <span data-i18n="pattern.day.label">Day</span>
+          <div class="position-row">
+            <select id="ruleDopDirection">
+              <option value="first"   data-i18n="pattern.dir.first">First</option>
+              <option value="last"    data-i18n="pattern.dir.last">Last</option>
+              <option value="nth"     data-i18n="pattern.dir.nth">Nth (from start)</option>
+              <option value="nthLast" data-i18n="pattern.dir.nthLast">Nth from end</option>
+            </select>
+            <input type="number" id="ruleDopN" min="1" value="2" hidden />
+            <select id="ruleDopPeriod">
+              <option value="month" selected data-i18n="pattern.ofMonth">of every month</option>
+              <option value="year"           data-i18n="pattern.ofYear">of every year</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Pattern: weekday of period -->
+        <div class="field" id="ruleWdopField" hidden>
+          <span data-i18n="pattern.weekday.label">Weekday position</span>
+          <div class="position-row">
+            <select id="ruleWdopDirection">
+              <option value="first"   data-i18n="pattern.dir.first">First</option>
+              <option value="last"    data-i18n="pattern.dir.last">Last</option>
+              <option value="nth"     data-i18n="pattern.dir.nth">Nth (from start)</option>
+              <option value="nthLast" data-i18n="pattern.dir.nthLast">Nth from end</option>
+            </select>
+            <input type="number" id="ruleWdopN" min="1" value="2" hidden />
+            <select id="ruleWdopPeriod">
+              <option value="month" selected data-i18n="pattern.ofMonth">of every month</option>
+              <option value="year"           data-i18n="pattern.ofYear">of every year</option>
+            </select>
+          </div>
+          <span data-i18n="pattern.weekdays.label">Weekdays</span>
+          <div class="weekday-toggles" id="ruleWdopWeekdaysList"></div>
+        </div>
+
+        <!-- Time of day (non-interval patterns) -->
+        <label class="field" id="ruleTimeField" hidden>
+          <span data-i18n="rule.timeOfDay">Time of day</span>
+          <input type="time" id="ruleTimeOfDay" value="09:00" />
+        </label>
+
+        <label class="field">
+          <span data-i18n="recurring.endAtLabel">Stop on date (optional)</span>
+          <input type="datetime-local" id="ruleEndAt" />
+        </label>
+
         <small id="ruleFirstPreview" class="muted small" hidden></small>
-      </label>
-
-      <label class="field" id="ruleTimeField" hidden>
-        <span data-i18n="rule.timeOfDay">Time of day</span>
-        <input type="time" id="ruleTimeOfDay" value="09:00" />
-        <small id="ruleFirstPreview2" class="muted small" hidden></small>
-      </label>
-
-      <label class="field">
-        <span data-i18n="rule.endAt">End date (optional)</span>
-        <input type="datetime-local" id="ruleEndAt" />
-      </label>
+        <small id="rulePatternValidation" class="muted small" hidden></small>
+      </div>
 
       <label class="field">
         <span data-i18n="tx.category">Category (optional)</span>
@@ -508,6 +551,7 @@
         <button type="button" class="btn btn-secondary" id="chooseAccount" data-i18n="add.account">＋ Account</button>
         <button type="button" class="btn btn-secondary" id="chooseTx"   data-i18n="add.tx">＋ Transaction (one-time)</button>
         <button type="button" class="btn btn-secondary" id="chooseRule" data-i18n="add.rule">＋ Recurring rule</button>
+        <button type="button" class="btn btn-secondary" id="chooseSetBalance" hidden data-i18n="add.setBalance">＋ Set balance</button>
       </div>
       <div class="modal-actions">
         <span class="spacer"></span>
