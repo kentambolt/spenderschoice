@@ -194,12 +194,7 @@
       "color.pick":"Pick a color",
       "color.custom":"Custom color",
       // Top dropdown menu
-      "menu.rules":      "Rules",
-      "menu.currencies": "Currencies",
-      "menu.categories": "Categories",
-      "menu.theme":      "Appearance",
-      "menu.data":       "Your data",
-      "menu.language":   "Language",
+      "menu.settings":   "Settings",
       // update
       "update.available":"A new version is available.",
       "update.reload":   "Reload",
@@ -479,12 +474,7 @@
       "icon.none":"Intet ikon",
       "color.pick":"Vælg en farve",
       "color.custom":"Brugerdefineret farve",
-      "menu.rules":      "Regler",
-      "menu.currencies": "Valutaer",
-      "menu.categories": "Kategorier",
-      "menu.theme":      "Udseende",
-      "menu.data":       "Dine data",
-      "menu.language":   "Sprog",
+      "menu.settings":   "Indstillinger",
       "update.available":"En ny version er tilgængelig.",
       "update.reload":   "Genindlæs",
       "time.now":"nu",
@@ -1597,6 +1587,10 @@
   function openTopMenu(anchorBtn) {
     const menu = $("#topMenu");
     if (!menu) return;
+    // Highlight the menu item that matches the current page.
+    $$("#topMenu button").forEach(b => {
+      b.classList.toggle("is-active", b.dataset.action === state.activeTab);
+    });
     menu.hidden = false;
     const rect = anchorBtn.getBoundingClientRect();
     menu.style.top   = (rect.bottom + 6) + "px";
@@ -1612,33 +1606,16 @@
     if (!menu) return;
     if (menu.hidden) openTopMenu(anchorBtn); else closeTopMenu();
   }
+  // Recognised page-navigation actions; "settings" opens the full drawer.
+  const MENU_PAGES = ["accounts", "rules", "forecast", "stats", "history"];
   function handleMenuAction(action) {
-    if (action === "rules") {
-      state.activeTab = "rules";
+    if (action === "settings") { openSettings(); return; }
+    if (MENU_PAGES.includes(action)) {
+      // Leaving the account-detail view if we were in it.
+      if (state.detailAccountId) closeDetail();
+      state.activeTab = action;
       save();
-      $$(".tab").forEach(t2 => t2.classList.toggle("is-active", false));
       render();
-      return;
-    }
-    const sectionMap = {
-      currencies: "sectionCurrencies",
-      categories: "sectionCategories",
-      theme:      "sectionTheme",
-      data:       "sectionData",
-      language:   "sectionLanguage",
-    };
-    const sectionId = sectionMap[action];
-    openSettings();
-    if (sectionId) {
-      setTimeout(() => {
-        const el = document.getElementById(sectionId);
-        if (!el) return;
-        el.scrollIntoView({ behavior: "smooth", block: "start" });
-        el.classList.remove("settings-focus-flash");
-        // restart the animation
-        void el.offsetWidth;
-        el.classList.add("settings-focus-flash");
-      }, 80);
     }
   }
   function bindTopMenu() {
@@ -2754,7 +2731,21 @@
     $("#emptyState").hidden = true;
 
     const tab = state.activeTab;
-    if (tab === "accounts")    return renderAccountsTab(view);
+    // Page title at the top of the shell — keeps the user oriented now that
+    // navigation lives in the dropdown menu instead of a tab bar.
+    const titleEl = $("#pageTitle");
+    if (titleEl) {
+      const titleKeyByTab = {
+        accounts: "tab.accounts",
+        rules:    "tab.rules",
+        forecast: "tab.forecast",
+        history:  "tab.history",
+        stats:    "tab.stats",
+      };
+      titleEl.textContent = titleKeyByTab[tab] ? t(titleKeyByTab[tab]) : "";
+    }
+
+    if (tab === "accounts") return renderAccountsTab(view);
     if (tab === "forecast") return renderForecastTab(view);
     if (tab === "rules")    return renderRulesTab(view);
     if (tab === "history")  return renderHistoryTab(view);
@@ -3045,12 +3036,6 @@
     if (state.rules.length === 0) {
       return showEmpty(view, "empty.rulesTitle", "empty.rulesBody", "empty.rulesCta", () => openRuleModal());
     }
-    // The Rules view is reached via the dropdown menu (no tab pill stays
-    // active), so render a header so the user knows where they are.
-    view.appendChild(el("div", { class: "section-head" },
-      el("span", {}, t("tab.rules")),
-      el("span", { class: "count" }, String(state.rules.length))
-    ));
     const sorted = [...state.rules].sort((a, b) => {
       if (!!a.active !== !!b.active) return a.active ? -1 : 1;
       const an = nthOccurrence(a, a.occurrenceCount || 0);

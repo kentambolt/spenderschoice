@@ -1494,6 +1494,15 @@ input[type="color"]::-moz-color-swatch    { border: none; border-radius: 6px; }
   .weekday-toggles { grid-template-columns: repeat(4, 1fr); }
 }
 
+/* ---------- Page title (consistent header per page) ---------- */
+.page-title {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  margin: 6px 18px 4px;
+  color: var(--text);
+}
+
 /* ---------- Top dropdown menu ---------- */
 .dropdown-menu {
   position: fixed;
@@ -1521,6 +1530,15 @@ input[type="color"]::-moz-color-swatch    { border: none; border-radius: 6px; }
   font-size: 14px;
 }
 .dropdown-menu button:hover { background: var(--surface-2); }
+.dropdown-menu button.is-active {
+  background: color-mix(in srgb, var(--brand-2) 18%, var(--surface));
+  color: var(--text);
+}
+.dropdown-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 4px 2px;
+}
 
 /* Brief highlight when scrolling a settings section into view */
 .settings-focus-flash {

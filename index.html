@@ -25,14 +25,9 @@
     </button>
   </header>
 
-  <main class="main">
-    <nav class="tabs" role="tablist">
-      <button class="tab is-active" data-tab="accounts"    role="tab" data-i18n="tab.accounts">Accounts</button>
-      <button class="tab"           data-tab="forecast" role="tab" data-i18n="tab.forecast">Forecast</button>
-      <button class="tab"           data-tab="history"  role="tab" data-i18n="tab.history">History</button>
-      <button class="tab"           data-tab="stats"    role="tab" data-i18n="tab.stats">Stats</button>
-    </nav>
+  <h2 id="pageTitle" class="page-title"></h2>
 
+  <main class="main">
     <section id="view" class="pane" aria-live="polite"></section>
 
     <div id="emptyState" class="empty" hidden>
@@ -45,12 +40,13 @@
 
   <!-- Top dropdown menu (opened by the 3-lines button) -->
   <div id="topMenu" class="dropdown-menu" hidden role="menu">
-    <button type="button" role="menuitem" data-action="rules"      data-i18n="menu.rules">Rules</button>
-    <button type="button" role="menuitem" data-action="currencies" data-i18n="menu.currencies">Currencies</button>
-    <button type="button" role="menuitem" data-action="categories" data-i18n="menu.categories">Categories</button>
-    <button type="button" role="menuitem" data-action="theme"      data-i18n="menu.theme">Appearance</button>
-    <button type="button" role="menuitem" data-action="data"       data-i18n="menu.data">Your data</button>
-    <button type="button" role="menuitem" data-action="language"   data-i18n="menu.language">Language</button>
+    <button type="button" role="menuitem" data-action="accounts" data-i18n="tab.accounts">Accounts</button>
+    <button type="button" role="menuitem" data-action="rules"    data-i18n="tab.rules">Rules</button>
+    <button type="button" role="menuitem" data-action="forecast" data-i18n="tab.forecast">Forecast</button>
+    <button type="button" role="menuitem" data-action="stats"    data-i18n="tab.stats">Stats</button>
+    <button type="button" role="menuitem" data-action="history"  data-i18n="tab.history">History</button>
+    <div class="dropdown-divider"></div>
+    <button type="button" role="menuitem" data-action="settings" data-i18n="menu.settings">Settings</button>
   </div>
 
   <button id="addBtn" class="fab" aria-label="Add" title="Add">
