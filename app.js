@@ -130,6 +130,7 @@
       "history.pending":   "Pending",
       "history.applied":   "Applied",
       "history.fromRule":  "Rule",
+      "history.openRule":  "Open the source rule",
       "history.upcoming":  "Upcoming (next 30 days)",
       "history.recent":    "Recent",
       // detail
@@ -228,10 +229,11 @@
       "recurring.one":          "One-time",
       "recurring.endAtLabel":   "Stop on date (optional)",
       // Preview narratives
-      "preview.once":           "Will trigger once on {first}.",
-      "preview.forever":        "First trigger on {first}, then {sched}, continuing indefinitely.",
-      "preview.times":          "First trigger on {first}, then {sched}. Final trigger on {last} ({n} triggers in total).",
-      "preview.timesOne":       "Will trigger once on {first}.",
+      "preview.title":          "Upcoming triggers",
+      "preview.empty":          "No triggers — schedule won't fire.",
+      "preview.showAllN":       "Show all {n} triggers",
+      "preview.showAll":        "Show all triggers",
+      "preview.collapse":       "Show fewer",
       // Interval label singular (n = 1)
       "every1.minute":          "every minute",
       "every1.hour":            "every hour",
@@ -413,6 +415,7 @@
       "history.pending":   "Afventer",
       "history.applied":   "Anvendt",
       "history.fromRule":  "Regel",
+      "history.openRule":  "Åbn kilderegel",
       "history.upcoming":  "Kommende (næste 30 dage)",
       "history.recent":    "Nylig",
       "detail.editAccount":   "Rediger konto",
@@ -494,10 +497,11 @@
       "howOften.numberOf":      "Antal gange",
       "recurring.one":          "Engangs",
       "recurring.endAtLabel":   "Stop på dato (valgfri)",
-      "preview.once":           "Aktiveres én gang den {first}.",
-      "preview.forever":        "Første gang den {first}, derefter {sched}, fortsætter uendeligt.",
-      "preview.times":          "Første gang den {first}, derefter {sched}. Sidste gang den {last} (i alt {n} aktiveringer).",
-      "preview.timesOne":       "Aktiveres én gang den {first}.",
+      "preview.title":          "Kommende aktiveringer",
+      "preview.empty":          "Ingen aktiveringer — tidsplanen vil ikke køre.",
+      "preview.showAllN":       "Vis alle {n} aktiveringer",
+      "preview.showAll":        "Vis alle aktiveringer",
+      "preview.collapse":       "Vis færre",
       "every1.minute":          "hvert minut",
       "every1.hour":            "hver time",
       "every1.day":             "hver dag",
@@ -625,6 +629,23 @@
   }
   const $  = (sel, root = document) => root.querySelector(sel);
   const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
+
+  // Inline SVG right-arrow that vertically centers on the surrounding text
+  // baseline (the unicode "→" character renders low in many system fonts).
+  function arrowRight() {
+    const svgNS = "http://www.w3.org/2000/svg";
+    const svg = document.createElementNS(svgNS, "svg");
+    svg.setAttribute("viewBox", "0 0 24 24");
+    svg.setAttribute("width", "14");
+    svg.setAttribute("height", "14");
+    svg.setAttribute("class", "arrow-rt");
+    svg.setAttribute("aria-hidden", "true");
+    const path = document.createElementNS(svgNS, "path");
+    path.setAttribute("fill", "currentColor");
+    path.setAttribute("d", "M13 5l-1.4 1.4L16.2 11H4v2h12.2l-4.6 4.6L13 19l7-7z");
+    svg.appendChild(path);
+    return svg;
+  }
 
   // Adds an interval to a timestamp. For month/year units, clamps the
   // day-of-month to the last valid day of the target month so Jan 30 + 1 month
@@ -2019,6 +2040,7 @@
   function openRuleModal(rule, presetAccountId) {
     editingRuleId = rule?.id || null;
     ruleType = rule?.type || "expense";
+    occurrencesExpanded = false;
     $("#ruleModalTitle").textContent = t(rule ? "rule.edit" : "rule.new");
     updateRuleTypeUI();
     refreshRuleAccountOptions(rule, presetAccountId);
@@ -2200,48 +2222,105 @@
     _updatePreview();
   }
 
-  // Builds the live preview sentence using the current form state, describing
-  // first / recurrence / last + total triggers as applicable.
+  // Occurrence list state. Holds the temp rule + pagination cursor used by
+  // the live preview inside the rule modal. Reset whenever the modal opens.
+  let occurrencesExpanded = false;
+  let occurrencesLoaded   = 0;
+  let occurrencesRule     = null;
+  const OCC_PAGE_SIZE = 25;
+  const OCC_FOREVER_CAP = 1000;
+
+  function _renderOccurrenceItem(idx, ts) {
+    return el("div", { class: "occurrence-item" },
+      el("span", { class: "occ-num" }, "#" + (idx + 1)),
+      el("span", { class: "occ-date" }, fmtDateTime(ts)),
+    );
+  }
+
+  // Adds the next page of items to the list (used by both initial render and
+  // the IntersectionObserver-driven lazy load).
+  function _appendOccurrences(targetCount) {
+    if (!occurrencesRule) return;
+    const list = $("#ruleOccurrencesList");
+    const cap = occurrencesRule.maxOccurrences != null
+      ? occurrencesRule.maxOccurrences
+      : OCC_FOREVER_CAP;
+    const end = Math.min(targetCount, cap);
+    for (let i = occurrencesLoaded; i < end; i++) {
+      const ts = nthOccurrence(occurrencesRule, i);
+      if (ts == null) { occurrencesLoaded = cap; return; }
+      list.appendChild(_renderOccurrenceItem(i, ts));
+    }
+    occurrencesLoaded = end;
+  }
+
   function _updatePreview() {
-    const previewEl = $("#ruleFirstPreview");
+    const wrap = $("#ruleOccurrencesField");
+    const list = $("#ruleOccurrencesList");
+    const btn  = $("#ruleOccurrencesToggle");
     const startAt = ruleFormStartAt();
 
+    list.innerHTML = "";
+    list.classList.remove("expanded");
+    list.onscroll = null;
+    occurrencesLoaded = 0;
+
+    // Build the temp rule mirroring what would be saved.
     if (ruleHowOften === "once") {
-      previewEl.hidden = false;
-      previewEl.textContent = t("preview.once", { first: fmtDateTime(startAt) });
+      occurrencesRule = { recurring: false, startAt, maxOccurrences: 1 };
+    } else {
+      const pattern = ruleFormPattern();
+      const v = patternValidity(pattern);
+      if (!v.ok) { wrap.hidden = true; occurrencesRule = null; return; }
+      const { h, mi } = ruleFormTimeOfDay();
+      occurrencesRule = {
+        recurring: true, startAt, pattern, timeOfDay: { h, mi },
+        maxOccurrences: (ruleHowOften === "times")
+          ? Math.max(1, parseInt($("#ruleHowOftenTimes").value, 10) || 1)
+          : null,
+      };
+    }
+
+    const first = nthOccurrence(occurrencesRule, 0);
+    if (first == null) {
+      wrap.hidden = false;
+      list.appendChild(el("div", { class: "occurrences-empty" }, t("preview.empty")));
+      btn.hidden = true;
       return;
     }
-    const pattern = ruleFormPattern();
-    const v = patternValidity(pattern);
-    if (!v.ok) { previewEl.hidden = true; return; }
-    const { h, mi } = ruleFormTimeOfDay();
-    const tempRule = {
-      recurring: true,
-      startAt, pattern,
-      timeOfDay: { h, mi },
-      maxOccurrences: ruleHowOften === "times"
-        ? Math.max(1, parseInt($("#ruleHowOftenTimes").value, 10) || 1)
-        : null,
-    };
-    const first = ruleFirstOccurrence(tempRule);
-    if (first == null) { previewEl.hidden = true; return; }
-    const sched = scheduleLabel(tempRule);
-    previewEl.hidden = false;
-    if (ruleHowOften === "forever") {
-      previewEl.textContent = t("preview.forever", { first: fmtDateTime(first), sched });
-    } else {
-      const n = tempRule.maxOccurrences;
-      if (n === 1) {
-        previewEl.textContent = t("preview.timesOne", { first: fmtDateTime(first) });
+    wrap.hidden = false;
+
+    const totalKnown = occurrencesRule.maxOccurrences; // null = forever
+
+    if (!occurrencesExpanded) {
+      // Collapsed: show up to 3 items, then a "Show all" button if there's more.
+      _appendOccurrences(3);
+      btn.onclick = () => { occurrencesExpanded = true; _updatePreview(); };
+      if (totalKnown != null) {
+        if (totalKnown > occurrencesLoaded) {
+          btn.hidden = false;
+          btn.textContent = t("preview.showAllN", { n: totalKnown });
+        } else {
+          btn.hidden = true;
+        }
       } else {
-        const last = nthOccurrence(tempRule, n - 1);
-        previewEl.textContent = t("preview.times", {
-          first: fmtDateTime(first),
-          sched,
-          last: last != null ? fmtDateTime(last) : "—",
-          n,
-        });
+        btn.hidden = false;
+        btn.textContent = t("preview.showAll");
       }
+    } else {
+      // Expanded: scrollable, paginated list.
+      list.classList.add("expanded");
+      _appendOccurrences(OCC_PAGE_SIZE);
+      btn.hidden = false;
+      btn.textContent = t("preview.collapse");
+      btn.onclick = () => { occurrencesExpanded = false; _updatePreview(); };
+      list.onscroll = () => {
+        const cap = totalKnown != null ? totalKnown : OCC_FOREVER_CAP;
+        if (occurrencesLoaded >= cap) return;
+        if (list.scrollTop + list.clientHeight >= list.scrollHeight - 60) {
+          _appendOccurrences(occurrencesLoaded + OCC_PAGE_SIZE);
+        }
+      };
     }
   }
   function closeRuleModal() {
@@ -2642,7 +2721,11 @@
         el("span", { class: "account-icon", style: { width: "30px", height: "30px", fontSize: "16px" } }, "Σ"),
         el("div", { class: "forecast-title" }, t("forecast.total"))
       ),
-      el("div", { class: "forecast-sub" }, t("stats.accountCount", { n: state.accounts.length }) + " · " + fmtDate(now) + " → " + fmtDate(target))
+      el("div", { class: "forecast-sub" },
+        t("stats.accountCount", { n: state.accounts.length }) + " · " + fmtDate(now) + " ",
+        arrowRight(),
+        " " + fmtDate(target)
+      )
     ));
 
     const tiles = el("div", { class: "forecast-summary" });
@@ -2728,7 +2811,7 @@
         el("span", { class: "account-icon", style: { width: "30px", height: "30px", fontSize: "16px" } }, account.icon || "🏦"),
         el("div", { class: "forecast-title" }, account.name)
       ),
-      el("div", { class: "forecast-sub" }, fmtDate(now) + " → " + fmtDate(target))
+      el("div", { class: "forecast-sub" }, fmtDate(now) + " ", arrowRight(), " " + fmtDate(target))
     ));
 
     const tiles = el("div", { class: "forecast-summary" });
@@ -2771,6 +2854,23 @@
   }
 
   /* ----- Rules tab ----- */
+  // Builds the "· From → To" sub-meta for a rule/tx row using the SVG arrow.
+  function _makeRouteSpan(type, fromId, toId) {
+    const span = el("span", { style: { display: "inline-flex", alignItems: "center", gap: "4px" } });
+    span.appendChild(document.createTextNode("· "));
+    if (type === "transfer") {
+      span.appendChild(document.createTextNode(accountName(fromId)));
+      span.appendChild(arrowRight());
+      span.appendChild(document.createTextNode(accountName(toId)));
+    } else if (type === "income") {
+      span.appendChild(arrowRight());
+      span.appendChild(document.createTextNode(accountName(toId)));
+    } else {
+      span.appendChild(document.createTextNode(accountName(fromId)));
+    }
+    return span;
+  }
+
   function renderRulesTab(view) {
     if (state.rules.length === 0) {
       return showEmpty(view, "empty.rulesTitle", "empty.rulesBody", "empty.rulesCta", () => openRuleModal());
@@ -2795,9 +2895,7 @@
 
     const meta = el("div", { class: "row-meta" });
     meta.appendChild(el("span", {}, scheduleLabel(rule)));
-    if (rule.type === "transfer") meta.appendChild(el("span", {}, "· " + accountName(rule.fromAccountId) + " → " + accountName(rule.toAccountId)));
-    else if (rule.type === "income") meta.appendChild(el("span", {}, "· → " + accountName(rule.toAccountId)));
-    else meta.appendChild(el("span", {}, "· " + accountName(rule.fromAccountId)));
+    meta.appendChild(_makeRouteSpan(rule.type, rule.fromAccountId, rule.toAccountId));
     // next
     const next = nthOccurrence(rule, rule.occurrenceCount || 0);
     if (next && (!rule.endAt || next <= rule.endAt) && rule.active) {
@@ -2855,11 +2953,20 @@
     body.appendChild(el("div", { class: "row-title" }, title));
     const meta = el("div", { class: "row-meta" });
     meta.appendChild(el("span", {}, fmtDateTime(tx.at)));
-    if (tx.type === "transfer") meta.appendChild(el("span", {}, "· " + accountName(tx.fromAccountId) + " → " + accountName(tx.toAccountId)));
-    else if (tx.type === "income") meta.appendChild(el("span", {}, "· → " + accountName(tx.toAccountId)));
-    else meta.appendChild(el("span", {}, "· " + accountName(tx.fromAccountId)));
+    meta.appendChild(_makeRouteSpan(tx.type, tx.fromAccountId, tx.toAccountId));
     if (tx.status === "pending") meta.appendChild(el("span", { class: "chip" }, t("history.pending")));
-    if (tx.ruleId) meta.appendChild(el("span", { class: "chip" }, t("history.fromRule")));
+    if (tx.ruleId) {
+      const ruleChip = el("span", {
+        class: "chip chip-clickable",
+        title: t("history.openRule"),
+        onclick: (e) => {
+          e.stopPropagation();
+          const r = state.rules.find(x => x.id === tx.ruleId);
+          if (r) openRuleModal(r);
+        },
+      }, t("history.fromRule"));
+      meta.appendChild(ruleChip);
+    }
     if (tx.categoryId) {
       const c = categoryById(tx.categoryId);
       if (c) meta.appendChild(el("span", { class: "chip chip-cat", style: { "--chip-color": c.color || "#14B8A6" } },

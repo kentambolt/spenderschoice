@@ -442,8 +442,13 @@
           <input type="datetime-local" id="ruleEndAt" />
         </label>
 
-        <small id="ruleFirstPreview" class="muted small" hidden></small>
         <small id="rulePatternValidation" class="muted small" hidden></small>
+      </div>
+
+      <div class="field" id="ruleOccurrencesField" hidden>
+        <span data-i18n="preview.title">Upcoming triggers</span>
+        <div id="ruleOccurrencesList" class="occurrences-list"></div>
+        <button type="button" class="btn btn-ghost btn-sm" id="ruleOccurrencesToggle" hidden></button>
       </div>
 
       <label class="field">
