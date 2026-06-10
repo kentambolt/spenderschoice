@@ -6,7 +6,7 @@
      in-page "Reload" prompt can swap to the new version.
 */
 
-const VERSION = "2026-06-09-7";
+const VERSION = "2026-06-09-8";
 const CACHE_NAME = "spenderschoice-" + VERSION;
 const APP_SHELL = [
   "./",

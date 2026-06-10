@@ -197,7 +197,7 @@
         <span data-i18n="account.appearance">Icon &amp; color</span>
         <div style="display:flex; gap:8px; align-items:center;">
           <button type="button" id="accountIconBtn" class="icon-pick-btn">＋</button>
-          <input type="color" id="accountColor" value="#14B8A6" style="width:40px; height:40px; padding:0; border:1px solid var(--border); border-radius:10px; background:transparent; cursor:pointer;" />
+          <button type="button" id="accountColor" class="color-swatch" style="background:#14B8A6" aria-label="Pick a color"></button>
         </div>
       </div>
 
@@ -513,6 +513,25 @@
         <button type="submit" class="btn btn-primary" data-i18n="save">Save</button>
       </div>
     </form>
+  </div>
+</div>
+
+<!-- ============ COLOR PICKER ============ -->
+<div id="colorPicker" class="modal" hidden>
+  <div class="modal-scrim" data-cancel></div>
+  <div class="modal-card modal-card-sm" role="dialog" aria-label="Pick a color">
+    <div class="modal-body">
+      <h3 class="dlg-title" data-i18n="color.pick">Pick a color</h3>
+      <div id="colorGrid" class="color-grid"></div>
+      <label class="field" style="margin-top: 8px;">
+        <span data-i18n="color.custom">Custom color</span>
+        <input type="color" id="colorPickerCustom" />
+      </label>
+      <div class="modal-actions">
+        <span class="spacer"></span>
+        <button type="button" class="btn btn-ghost" data-cancel data-i18n="cancel">Cancel</button>
+      </div>
+    </div>
   </div>
 </div>
 

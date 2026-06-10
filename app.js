@@ -191,6 +191,8 @@
       // icon picker
       "icon.pick":"Pick an icon",
       "icon.none":"No icon",
+      "color.pick":"Pick a color",
+      "color.custom":"Custom color",
       // update
       "update.available":"A new version is available.",
       "update.reload":   "Reload",
@@ -468,6 +470,8 @@
       "toast.tooMany":  "Den plan ville generere for mange efterregistreringer. Nogle blev sprunget over.",
       "icon.pick":"Vælg et ikon",
       "icon.none":"Intet ikon",
+      "color.pick":"Vælg en farve",
+      "color.custom":"Brugerdefineret farve",
       "update.available":"En ny version er tilgængelig.",
       "update.reload":   "Genindlæs",
       "time.now":"nu",
@@ -976,6 +980,21 @@
     if (!ts) return "—";
     const lang = state.settings.lang === "da" ? "da-DK" : "en-US";
     return new Date(ts).toLocaleString(lang, { year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
+  }
+  // Returns an inline element with the datetime split into fixed-width parts
+  // (weekday, day, month, year, time) so multiple rows line up vertically even
+  // when the surrounding font isn't monospace.
+  function fmtDateTimeAligned(ts) {
+    const d = new Date(ts);
+    const lang = state.settings.lang === "da" ? "da-DK" : "en-US";
+    const pad = n => String(n).padStart(2, "0");
+    return el("span", { class: "dt-parts" },
+      el("span", { class: "dt-weekday" }, d.toLocaleDateString(lang, { weekday: "short" })),
+      el("span", { class: "dt-day"     }, String(d.getDate())),
+      el("span", { class: "dt-month"   }, d.toLocaleDateString(lang, { month: "short" })),
+      el("span", { class: "dt-year"    }, String(d.getFullYear())),
+      el("span", { class: "dt-time"    }, pad(d.getHours()) + ":" + pad(d.getMinutes())),
+    );
   }
   function toLocalInputValue(ts) {
     // returns "YYYY-MM-DDTHH:mm" in local time for <input type="datetime-local">
@@ -1511,8 +1530,19 @@
       iconBtn.onclick = () => openIconPicker(icon => { cat.icon = icon || null; save(); renderCategoryEditor(container); render(); }, cat.icon);
       const name = el("input", { type: "text", value: cat.name || "", maxlength: 32, placeholder: t("category.name") });
       name.oninput = (e) => { cat.name = e.target.value; save(); render(); refreshTxCategoryOptions(); refreshRuleCategoryOptions(); };
-      const color = el("input", { type: "color", value: cat.color || "#14B8A6", title: t("category.color") });
-      color.oninput = (e) => { cat.color = e.target.value; save(); renderCategoryEditor(container); render(); };
+      const color = el("button", {
+        type: "button",
+        class: "color-swatch",
+        title: t("category.color"),
+        "aria-label": t("category.color"),
+        style: { background: cat.color || "#14B8A6" },
+        onclick: () => openColorPicker(c => {
+          cat.color = c;
+          save();
+          renderCategoryEditor(container);
+          render();
+        }, cat.color),
+      });
       const del = el("button", { class: "del", type: "button", title: "Delete", "aria-label": "Delete",
         html: '<svg viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M6 7h12l-1 13H7L6 7Zm3-3h6v2H9V4Z"/></svg>' });
       del.onclick = () => {
@@ -1660,6 +1690,42 @@
     $("#iconClear").onclick = () => { cleanup(); onPick(null); };
   }
 
+  // ===== Color picker =====
+  const COLOR_PALETTE = [
+    "#14B8A6", "#10B981", "#06B6D4", "#0EA5E9",
+    "#3B82F6", "#6366F1", "#8B5CF6", "#A855F7",
+    "#EC4899", "#EF4444", "#F97316", "#F59E0B",
+    "#84CC16", "#64748B",
+  ];
+  function openColorPicker(onPick, currentColor) {
+    const dlg = $("#colorPicker");
+    const grid = $("#colorGrid");
+    const customInput = $("#colorPickerCustom");
+    grid.innerHTML = "";
+    const norm = c => (c || "").toLowerCase();
+    const current = norm(currentColor);
+    COLOR_PALETTE.forEach(c => {
+      const b = el("button", {
+        type: "button",
+        class: "color-cell" + (norm(c) === current ? " is-active" : ""),
+        style: { background: c },
+        "aria-label": c,
+        onclick: () => { cleanup(); onPick(c); },
+      });
+      grid.appendChild(b);
+    });
+    customInput.value = currentColor || COLOR_PALETTE[0];
+    const onCustom = (e) => { cleanup(); onPick(e.target.value); };
+    customInput.onchange = onCustom;
+    dlg.hidden = false;
+    const cleanup = () => {
+      dlg.hidden = true;
+      customInput.onchange = null;
+      $$("[data-cancel]", dlg).forEach(b => b.onclick = null);
+    };
+    $$("[data-cancel]", dlg).forEach(b => b.onclick = cleanup);
+  }
+
   /* ============================================================
      GENERIC CONFIRM
      ============================================================ */
@@ -1725,7 +1791,13 @@
     pendingAccountIcon = account?.icon || "🏦";
     $("#accountModalTitle").textContent = t(account ? "account.edit" : "account.new");
     $("#accountName").value = account?.name || "";
-    $("#accountColor").value = account?.color || "#14B8A6";
+    const acctColor = account?.color || "#14B8A6";
+    $("#accountColor").style.background = acctColor;
+    $("#accountColor").dataset.color = acctColor;
+    $("#accountColor").onclick = () => openColorPicker(c => {
+      $("#accountColor").style.background = c;
+      $("#accountColor").dataset.color = c;
+    }, $("#accountColor").dataset.color);
     $("#accountNotes").value = account?.notes || "";
     $("#accountIconBtn").textContent = pendingAccountIcon || "＋";
     renderAccountBalanceRows(account?.balances || {});
@@ -1774,7 +1846,7 @@
       e.preventDefault();
       const name = $("#accountName").value.trim();
       if (!name) return;
-      const color = $("#accountColor").value;
+      const color = $("#accountColor").dataset.color || "#14B8A6";
       const notes = $("#accountNotes").value.trim();
       const balances = {};
       $$(".balance-edit-row", $("#accountBalanceRows")).forEach(row => {
@@ -1855,9 +1927,12 @@
     const allowAll = txType !== "income";
     $("#txAllAmountField").hidden = !allowAll;
     if (!allowAll) $("#txAllAmount").checked = false;
-    $("#txAmount").disabled = $("#txAllAmount").checked;
-    $("#txAmount").required = !$("#txAllAmount").checked;
-    $("#txAmount").placeholder = $("#txAllAmount").checked ? t("rule.allAmount") : "";
+    const isAll = $("#txAllAmount").checked;
+    const fieldset = $("#txAmount").closest("fieldset");
+    if (fieldset) fieldset.classList.toggle("amount-all", isAll);
+    $("#txAmount").hidden   = isAll;
+    $("#txAmount").disabled = isAll;
+    $("#txAmount").required = !isAll;
   }
   function closeTxModal() {
     $("#txModal").hidden = true;
@@ -2128,9 +2203,12 @@
     const allowAll = ruleType !== "income";
     $("#ruleAllAmountField").hidden = !allowAll;
     if (!allowAll) $("#ruleAllAmount").checked = false;
-    $("#ruleAmount").disabled = $("#ruleAllAmount").checked;
-    $("#ruleAmount").required = !$("#ruleAllAmount").checked;
-    $("#ruleAmount").placeholder = $("#ruleAllAmount").checked ? t("rule.allAmount") : "";
+    const isAll = $("#ruleAllAmount").checked;
+    const fieldset = $("#ruleAmount").closest("fieldset");
+    if (fieldset) fieldset.classList.toggle("amount-all", isAll);
+    $("#ruleAmount").hidden   = isAll;
+    $("#ruleAmount").disabled = isAll;
+    $("#ruleAmount").required = !isAll;
   }
 
   // startAt for the form: now or the picker's value.
@@ -2233,7 +2311,7 @@
   function _renderOccurrenceItem(idx, ts) {
     return el("div", { class: "occurrence-item" },
       el("span", { class: "occ-num" }, "#" + (idx + 1)),
-      el("span", { class: "occ-date" }, fmtDateTime(ts)),
+      fmtDateTimeAligned(ts),
     );
   }
 
@@ -2742,7 +2820,7 @@
       tiles.appendChild(el("div", { class: "forecast-tile" },
         el("span", { class: "label" }, ccy + " · " + t("forecast.projected")),
         el("span", { class: "value" + (proj < 0 ? " is-negative" : "") }, fmtAmount(proj)),
-        el("span", { class: "sub" }, "+" + fmtAmount(flow.in) + " / −" + fmtAmount(flow.out)),
+        _flowSub(flow.in, flow.out),
       ));
       const allowance = proj / days;
       tiles.appendChild(el("div", { class: "forecast-tile" },
@@ -2828,7 +2906,7 @@
       tiles.appendChild(el("div", { class: "forecast-tile" },
         el("span", { class: "label" }, ccy + " · " + t("forecast.projected")),
         el("span", { class: "value" + (proj < 0 ? " is-negative" : "") }, fmtAmount(proj)),
-        el("span", { class: "sub" }, "+" + fmtAmount(flow.in) + " / −" + fmtAmount(flow.out)),
+        _flowSub(flow.in, flow.out),
       ));
       // Per-day allowance, only when projected positive (otherwise show negative for clarity)
       const allowance = proj / days;
@@ -2854,10 +2932,23 @@
   }
 
   /* ----- Rules tab ----- */
-  // Builds the "· From → To" sub-meta for a rule/tx row using the SVG arrow.
+  // Stacked Incoming / Outgoing rows for a forecast tile, vertically aligned.
+  function _flowSub(flowIn, flowOut) {
+    return el("div", { class: "sub flow-sub" },
+      el("div", { class: "flow-row" },
+        el("span", { class: "flow-label" }, t("forecast.flowIn")),
+        el("span", { class: "flow-val pos" }, "+" + fmtAmount(flowIn || 0)),
+      ),
+      el("div", { class: "flow-row" },
+        el("span", { class: "flow-label" }, t("forecast.flowOut")),
+        el("span", { class: "flow-val neg" }, "−" + fmtAmount(flowOut || 0)),
+      ),
+    );
+  }
+
+  // Builds the "From → To" sub-meta for a rule/tx row using the SVG arrow.
   function _makeRouteSpan(type, fromId, toId) {
     const span = el("span", { style: { display: "inline-flex", alignItems: "center", gap: "4px" } });
-    span.appendChild(document.createTextNode("· "));
     if (type === "transfer") {
       span.appendChild(document.createTextNode(accountName(fromId)));
       span.appendChild(arrowRight());
@@ -2899,7 +2990,7 @@
     // next
     const next = nthOccurrence(rule, rule.occurrenceCount || 0);
     if (next && (!rule.endAt || next <= rule.endAt) && rule.active) {
-      meta.appendChild(el("span", {}, "· " + t("rule.next") + " " + fmtDateTime(next)));
+      meta.appendChild(el("span", {}, t("rule.next") + " " + fmtDateTime(next)));
     }
     if (!rule.active) meta.appendChild(el("span", { class: "chip" }, t("rule.paused")));
     if (rule.categoryId) {
@@ -3229,7 +3320,7 @@
       tiles.appendChild(el("div", { class: "forecast-tile" },
         el("span", { class: "label" }, ccy + " · " + t("forecast.projected")),
         el("span", { class: "value" + (proj < 0 ? " is-negative" : "") }, fmtAmount(proj)),
-        el("span", { class: "sub" }, t("forecast.flowIn") + ": " + fmtAmount(flow.in) + " · " + t("forecast.flowOut") + ": " + fmtAmount(flow.out)),
+        _flowSub(flow.in, flow.out),
       ));
     });
     wrap.appendChild(tiles);
@@ -3504,7 +3595,7 @@
     });
     document.addEventListener("keydown", (e) => {
       if (e.key !== "Escape") return;
-      const layers = ["#iconPicker", "#chooser", "#confirmDialog", "#setBalanceModal", "#ruleModal", "#txModal", "#accountModal"];
+      const layers = ["#iconPicker", "#colorPicker", "#chooser", "#confirmDialog", "#setBalanceModal", "#ruleModal", "#txModal", "#accountModal"];
       for (const sel of layers) {
         const n = $(sel);
         if (n && !n.hidden) { n.hidden = true; return; }
