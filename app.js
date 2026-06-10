@@ -1,7 +1,7 @@
 /* ============================================================
    SpendersChoice — app logic
    - localStorage persistence (with migration)
-   - Silos (multi-currency), categories, currencies
+   - Accounts/Accounts (multi-currency), categories, currencies
    - One-time transactions (past or future-dated)
    - Recurring rules (income / expense / transfer)
    - Forecast engine (end of week / month / year / custom),
@@ -20,35 +20,35 @@
     en: {
       name: "English", native: "English",
       // tabs
-      "tab.silos":    "Silos",
+      "tab.accounts":    "Accounts",
       "tab.forecast": "Forecast",
       "tab.rules":    "Rules",
       "tab.history":  "History",
       "tab.stats":    "Stats",
       // empty
       "empty.title":      "Nothing here yet",
-      "empty.body":       "Get started by creating your first silo.",
-      "empty.cta":        "Add a silo",
+      "empty.body":       "Get started by creating your first account.",
+      "empty.cta":        "Add an account",
       "empty.rulesTitle": "No recurring rules",
       "empty.rulesBody":  "Add salary, rent, subscriptions — anything that happens on a schedule.",
       "empty.rulesCta":   "Add a rule",
       "empty.txTitle":    "No transactions yet",
       "empty.txBody":     "One-time and rule-driven activity will show up here.",
       "empty.txCta":      "Add a transaction",
-      "empty.forecastTitle": "Add a silo to see a forecast",
-      "empty.forecastBody":  "Once you've got a silo and a few rules, the future will appear here.",
+      "empty.forecastTitle": "Add an account to see a forecast",
+      "empty.forecastBody":  "Once you've got an account and a few rules, the future will appear here.",
       "empty.statsTitle":  "No data yet",
       "empty.statsBody":   "Once money starts flowing, you'll see metrics here.",
       // onboarding
-      "onboard.welcomeSub": "Silos, recurring rules and a forecast you can trust.",
+      "onboard.welcomeSub": "Accounts, recurring rules and a forecast you can trust.",
       "onboard.start":      "Get started",
       "onboard.langTitle":  "Choose your language",
       "onboard.langSub":    "You can change this any time in Settings.",
       "onboard.currTitle":  "Your currencies",
       "onboard.currSub":    "Add the currencies you use. Plain codes — DKK, USD, BTC, anything.",
-      "onboard.siloTitle":  "Your first silo",
-      "onboard.siloSub":    "A silo is anywhere you keep money — a bank account, a wallet, a savings jar.",
-      "onboard.finish":     "Create silo",
+      "onboard.accountTitle":  "Your first account",
+      "onboard.accountSub":    "A account is anywhere you keep money — a bank account, a wallet, a savings jar.",
+      "onboard.finish":     "Create account",
       // settings
       "settings.title":         "Settings",
       "settings.language":      "Language",
@@ -65,22 +65,22 @@
       "theme.light": "Light",
       "theme.dark":  "Dark",
       "footer.local":"Everything stays on your device",
-      // silo modal
-      "silo.new":        "New silo",
-      "silo.edit":       "Edit silo",
-      "silo.name":       "Name",
-      "silo.appearance": "Icon & color",
-      "silo.balances":   "Balances",
-      "silo.addBalance": "+ Add currency",
-      "silo.notes":      "Notes (optional)",
-      "silo.delete":     "Delete",
-      "silo.startingBalance": "Starting balance (optional)",
+      // account modal
+      "account.new":        "New account",
+      "account.edit":       "Edit account",
+      "account.name":       "Name",
+      "account.appearance": "Icon & color",
+      "account.balances":   "Balances",
+      "account.addBalance": "+ Add currency",
+      "account.notes":      "Notes (optional)",
+      "account.delete":     "Delete",
+      "account.startingBalance": "Starting balance (optional)",
       // transaction
       "tx.new":      "New transaction",
       "tx.edit":     "Edit transaction",
       "tx.type":     "Type",
-      "tx.from":     "From silo",
-      "tx.to":       "To silo",
+      "tx.from":     "From account",
+      "tx.to":       "To account",
       "tx.amount":   "Amount",
       "tx.when":     "When",
       "tx.category": "Category (optional)",
@@ -104,7 +104,7 @@
       "rule.next":    "next",
       // forecast
       "forecast.title":     "Forecast",
-      "forecast.total":     "All silos",
+      "forecast.total":     "All accounts",
       "forecast.range.week":  "This week",
       "forecast.range.month": "This month",
       "forecast.range.year":  "This year",
@@ -125,7 +125,7 @@
       "stats.thisYearOut": "Spending (this year)",
       "stats.netThisMonth":"Net (this month)",
       "stats.byCategory":  "Spending by category (this month)",
-      "stats.siloCount":   "{n} silo(s)",
+      "stats.accountCount":   "{n} account(s)",
       // history
       "history.pending":   "Pending",
       "history.applied":   "Applied",
@@ -133,10 +133,10 @@
       "history.upcoming":  "Upcoming (next 30 days)",
       "history.recent":    "Recent",
       // detail
-      "detail.editSilo":   "Edit silo",
+      "detail.editAccount":   "Edit account",
       "detail.addTx":      "Add transaction",
       "detail.addRule":    "Add rule",
-      "detail.rules":      "Rules in this silo",
+      "detail.rules":      "Rules in this account",
       "detail.recent":     "Recent activity",
       // currency
       "currency.add":      "+ Add currency",
@@ -167,7 +167,7 @@
       "save":    "Save",
       "cancel":  "Cancel",
       "add.title":"What would you like to add?",
-      "add.silo": "＋ Silo",
+      "add.account": "＋ Account",
       "add.tx":   "＋ Transaction (one-time)",
       "add.rule": "＋ Recurring rule",
       // confirm
@@ -176,7 +176,7 @@
       "confirm.deleteBody":   "This can't be undone.",
       "confirm.deleteOk":     "Delete",
       "confirm.resetTitle":   "Reset everything?",
-      "confirm.resetBody":    "All your silos, rules and history will be deleted.",
+      "confirm.resetBody":    "All your accounts, rules and history will be deleted.",
       "confirm.resetOk":      "Reset all",
       // toasts
       "toast.created":  "Saved",
@@ -211,50 +211,77 @@
       // schedule
       "rule.schedule":          "Schedule",
       "rule.firstWillBe":       "First occurrence: {date}",
-      "schedule.interval":      "Custom interval",
-      "schedule.firstOfMonth":  "First day of every month",
-      "schedule.lastOfMonth":   "Last day of every month",
-      "schedule.firstOfYear":   "First day of every year",
-      "schedule.lastOfYear":    "Last day of every year",
-      "schedule.weeklyMon":     "Every Monday",
-      "schedule.weeklyTue":     "Every Tuesday",
-      "schedule.weeklyWed":     "Every Wednesday",
-      "schedule.weeklyThu":     "Every Thursday",
-      "schedule.weeklyFri":     "Every Friday",
-      "schedule.weeklySat":     "Every Saturday",
-      "schedule.weeklySun":     "Every Sunday",
       "rule.timeOfDay":         "Time of day",
+      "rule.allAmount":         "Use the entire source balance",
+      "rule.position":          "Position",
+      "schedule.interval":      "Custom interval",
+      "schedule.position":      "On a specific day",
+      // Position composition
+      "position.label":         "{ordinal} {day} of every {period}",
+      "position.direction":     "Count from",
+      "position.fromStart":     "Start",
+      "position.fromEnd":       "End",
+      "position.position":      "Position",
+      "position.dayType":       "Day",
+      "position.period":        "Period",
+      "ord.last":               "Last",
+      "ord.lastSuffix":         "last",
+      "period.week":            "week",
+      "period.month":           "month",
+      "period.year":             "year",
+      "weekday.any":            "day",
+      "weekday.mon":            "Monday",
+      "weekday.tue":            "Tuesday",
+      "weekday.wed":            "Wednesday",
+      "weekday.thu":            "Thursday",
+      "weekday.fri":            "Friday",
+      "weekday.sat":            "Saturday",
+      "weekday.sun":            "Sunday",
+      // Validation
+      "validation.positionRequired":  "Please pick a position.",
+      "validation.positionTooSmall":  "Position must be 1 or greater.",
+      "validation.weekWeekdayOnce":   "A weekday occurs once per week — set position to 1.",
+      "validation.weekDays":          "A week has only 7 days.",
+      "validation.monthWeekdayMax":   "A weekday occurs at most 5 times in a month.",
+      "validation.monthDaysMax":      "A month has at most 31 days.",
+      "validation.monthWeekday5":     "Only some months have a 5th occurrence — months without it are skipped.",
+      "validation.monthDayShort":     "Day {n} doesn't exist in some shorter months — those are skipped.",
+      "validation.yearWeekdayMax":    "A weekday occurs at most 53 times in a year.",
+      "validation.yearDaysMax":       "A year has at most 366 days.",
+      "validation.yearWeekday53":     "Only some years have 53 of that weekday — others are skipped.",
+      "validation.yearDay366":        "Day 366 only exists in leap years — others are skipped.",
+      "validation.unknownPeriod":     "Unknown period.",
     },
 
     da: {
       name: "Danish", native: "Dansk",
-      "tab.silos":    "Siloer",
+      "tab.accounts":    "Konti",
       "tab.forecast": "Prognose",
       "tab.rules":    "Regler",
       "tab.history":  "Historik",
       "tab.stats":    "Statistik",
       "empty.title":      "Intet her endnu",
-      "empty.body":       "Kom i gang ved at oprette din første silo.",
-      "empty.cta":        "Tilføj en silo",
+      "empty.body":       "Kom i gang ved at oprette din første konto.",
+      "empty.cta":        "Tilføj en konto",
       "empty.rulesTitle": "Ingen tilbagevendende regler",
       "empty.rulesBody":  "Tilføj løn, husleje, abonnementer — alt der sker efter en plan.",
       "empty.rulesCta":   "Tilføj en regel",
       "empty.txTitle":    "Ingen transaktioner endnu",
       "empty.txBody":     "Engangs- og regelstyret aktivitet vises her.",
       "empty.txCta":      "Tilføj en transaktion",
-      "empty.forecastTitle": "Tilføj en silo for at se prognosen",
-      "empty.forecastBody":  "Når du har en silo og et par regler, dukker fremtiden op her.",
+      "empty.forecastTitle": "Tilføj en konto for at se prognosen",
+      "empty.forecastBody":  "Når du har en konto og et par regler, dukker fremtiden op her.",
       "empty.statsTitle":  "Ingen data endnu",
       "empty.statsBody":   "Når pengene begynder at flyde, kommer der målinger her.",
-      "onboard.welcomeSub": "Siloer, tilbagevendende regler og en prognose du kan stole på.",
+      "onboard.welcomeSub": "Konti, tilbagevendende regler og en prognose du kan stole på.",
       "onboard.start":      "Kom i gang",
       "onboard.langTitle":  "Vælg sprog",
       "onboard.langSub":    "Du kan altid ændre det i indstillinger.",
       "onboard.currTitle":  "Dine valutaer",
       "onboard.currSub":    "Tilføj de valutaer du bruger. Bare koder — DKK, USD, BTC, hvad som helst.",
-      "onboard.siloTitle":  "Din første silo",
-      "onboard.siloSub":    "En silo er hvor som helst du opbevarer penge — en bankkonto, en pung, en sparebøsse.",
-      "onboard.finish":     "Opret silo",
+      "onboard.accountTitle":  "Din første konto",
+      "onboard.accountSub":    "En konto er hvor som helst du opbevarer penge — en bankkonto, en pung, en sparebøsse.",
+      "onboard.finish":     "Opret konto",
       "settings.title":         "Indstillinger",
       "settings.language":      "Sprog",
       "settings.currencies":    "Valutaer",
@@ -270,20 +297,20 @@
       "theme.light": "Lys",
       "theme.dark":  "Mørk",
       "footer.local":"Alt bliver på din enhed",
-      "silo.new":        "Ny silo",
-      "silo.edit":       "Rediger silo",
-      "silo.name":       "Navn",
-      "silo.appearance": "Ikon & farve",
-      "silo.balances":   "Saldi",
-      "silo.addBalance": "+ Tilføj valuta",
-      "silo.notes":      "Noter (valgfrit)",
-      "silo.delete":     "Slet",
-      "silo.startingBalance": "Startsaldo (valgfri)",
+      "account.new":        "Ny konto",
+      "account.edit":       "Rediger konto",
+      "account.name":       "Navn",
+      "account.appearance": "Ikon & farve",
+      "account.balances":   "Saldi",
+      "account.addBalance": "+ Tilføj valuta",
+      "account.notes":      "Noter (valgfrit)",
+      "account.delete":     "Slet",
+      "account.startingBalance": "Startsaldo (valgfri)",
       "tx.new":      "Ny transaktion",
       "tx.edit":     "Rediger transaktion",
       "tx.type":     "Type",
-      "tx.from":     "Fra silo",
-      "tx.to":       "Til silo",
+      "tx.from":     "Fra konto",
+      "tx.to":       "Til konto",
       "tx.amount":   "Beløb",
       "tx.when":     "Hvornår",
       "tx.category": "Kategori (valgfri)",
@@ -305,7 +332,7 @@
       "rule.paused":  "Pauset",
       "rule.next":    "næste",
       "forecast.title":     "Prognose",
-      "forecast.total":     "Alle siloer",
+      "forecast.total":     "Alle konti",
       "forecast.range.week":  "Denne uge",
       "forecast.range.month": "Denne måned",
       "forecast.range.year":  "I år",
@@ -325,16 +352,16 @@
       "stats.thisYearOut": "Forbrug (i år)",
       "stats.netThisMonth":"Netto (denne måned)",
       "stats.byCategory":  "Forbrug pr. kategori (denne måned)",
-      "stats.siloCount":   "{n} silo(er)",
+      "stats.accountCount":   "{n} konto/konti",
       "history.pending":   "Afventer",
       "history.applied":   "Anvendt",
       "history.fromRule":  "Regel",
       "history.upcoming":  "Kommende (næste 30 dage)",
       "history.recent":    "Nylig",
-      "detail.editSilo":   "Rediger silo",
+      "detail.editAccount":   "Rediger konto",
       "detail.addTx":      "Tilføj transaktion",
       "detail.addRule":    "Tilføj regel",
-      "detail.rules":      "Regler i denne silo",
+      "detail.rules":      "Regler i denne konto",
       "detail.recent":     "Nylig aktivitet",
       "currency.add":      "+ Tilføj valuta",
       "currency.code":     "Kode",
@@ -361,7 +388,7 @@
       "save":   "Gem",
       "cancel": "Annuller",
       "add.title":"Hvad vil du tilføje?",
-      "add.silo": "＋ Silo",
+      "add.account": "＋ Konto",
       "add.tx":   "＋ Transaktion (engang)",
       "add.rule": "＋ Tilbagevendende regel",
       "confirm.ok":           "Bekræft",
@@ -369,7 +396,7 @@
       "confirm.deleteBody":   "Dette kan ikke fortrydes.",
       "confirm.deleteOk":     "Slet",
       "confirm.resetTitle":   "Nulstil alt?",
-      "confirm.resetBody":    "Alle dine siloer, regler og historik slettes.",
+      "confirm.resetBody":    "Alle dine konti, regler og historik slettes.",
       "confirm.resetOk":      "Nulstil alt",
       "toast.created":  "Gemt",
       "toast.updated":  "Opdateret",
@@ -396,19 +423,44 @@
       "balance.defaultLabel":"Saldojustering",
       "rule.schedule":          "Tidsplan",
       "rule.firstWillBe":       "Første forekomst: {date}",
-      "schedule.interval":      "Brugerdefineret interval",
-      "schedule.firstOfMonth":  "Første dag i hver måned",
-      "schedule.lastOfMonth":   "Sidste dag i hver måned",
-      "schedule.firstOfYear":   "Første dag hvert år",
-      "schedule.lastOfYear":    "Sidste dag hvert år",
-      "schedule.weeklyMon":     "Hver mandag",
-      "schedule.weeklyTue":     "Hver tirsdag",
-      "schedule.weeklyWed":     "Hver onsdag",
-      "schedule.weeklyThu":     "Hver torsdag",
-      "schedule.weeklyFri":     "Hver fredag",
-      "schedule.weeklySat":     "Hver lørdag",
-      "schedule.weeklySun":     "Hver søndag",
       "rule.timeOfDay":         "Tidspunkt",
+      "rule.allAmount":         "Brug hele kildens saldo",
+      "rule.position":          "Position",
+      "schedule.interval":      "Brugerdefineret interval",
+      "schedule.position":      "På en bestemt dag",
+      "position.label":         "{ordinal} {day} i hver {period}",
+      "position.direction":     "Tæl fra",
+      "position.fromStart":     "Start",
+      "position.fromEnd":       "Slut",
+      "position.position":      "Position",
+      "position.dayType":       "Dag",
+      "position.period":        "Periode",
+      "ord.last":               "Sidste",
+      "ord.lastSuffix":         "sidste",
+      "period.week":            "uge",
+      "period.month":           "måned",
+      "period.year":            "år",
+      "weekday.any":            "dag",
+      "weekday.mon":            "mandag",
+      "weekday.tue":            "tirsdag",
+      "weekday.wed":            "onsdag",
+      "weekday.thu":            "torsdag",
+      "weekday.fri":            "fredag",
+      "weekday.sat":            "lørdag",
+      "weekday.sun":            "søndag",
+      "validation.positionRequired":  "Vælg en position.",
+      "validation.positionTooSmall":  "Positionen skal være 1 eller mere.",
+      "validation.weekWeekdayOnce":   "En ugedag forekommer én gang om ugen — sæt positionen til 1.",
+      "validation.weekDays":          "En uge har kun 7 dage.",
+      "validation.monthWeekdayMax":   "En ugedag forekommer højst 5 gange i en måned.",
+      "validation.monthDaysMax":      "En måned har højst 31 dage.",
+      "validation.monthWeekday5":     "Kun nogle måneder har en 5. forekomst — måneder uden den springes over.",
+      "validation.monthDayShort":     "Dag {n} findes ikke i alle måneder — kortere måneder springes over.",
+      "validation.yearWeekdayMax":    "En ugedag forekommer højst 53 gange på et år.",
+      "validation.yearDaysMax":       "Et år har højst 366 dage.",
+      "validation.yearWeekday53":     "Kun nogle år har 53 af den ugedag — andre springes over.",
+      "validation.yearDay366":        "Dag 366 findes kun i skudår — andre springes over.",
+      "validation.unknownPeriod":     "Ukendt periode.",
     },
   };
 
@@ -495,81 +547,178 @@
   function intervalLabel(every) {
     return t("every." + every.unit, { n: every.amount });
   }
-  function scheduleLabel(rule) {
-    const s = rule.schedule || "interval";
-    if (s === "interval") return intervalLabel(rule.every);
-    return t("schedule." + s);
-  }
-
-  // weeklyMon..weeklySun → day-of-week (Sun = 0, Sat = 6)
+  // Day-of-week constants (Sun = 0, Sat = 6) for legacy migration.
   const WEEKLY_DOW = { weeklySun: 0, weeklyMon: 1, weeklyTue: 2, weeklyWed: 3, weeklyThu: 4, weeklyFri: 5, weeklySat: 6 };
 
-  // Snap startAt to the first valid date for the given schedule type.
+  // Convert legacy schedule strings into the new {schedule: "position", position: {...}} shape.
+  function normalizeLegacySchedule(rule) {
+    const s = rule.schedule;
+    if (s === undefined || s === null || s === "interval" || s === "position") return;
+    let p = null;
+    if (WEEKLY_DOW[s] !== undefined) p = { fromEnd: false, n: 1, weekday: WEEKLY_DOW[s], period: "week" };
+    else if (s === "firstOfMonth")   p = { fromEnd: false, n: 1, weekday: null,            period: "month" };
+    else if (s === "lastOfMonth")    p = { fromEnd: true,  n: 1, weekday: null,            period: "month" };
+    else if (s === "firstOfYear")    p = { fromEnd: false, n: 1, weekday: null,            period: "year"  };
+    else if (s === "lastOfYear")     p = { fromEnd: true,  n: 1, weekday: null,            period: "year"  };
+    if (p) { rule.schedule = "position"; rule.position = p; }
+  }
+
+  // Enumerate all days in the period that contains refTs. Each entry is a Date,
+  // already set to the rule's time-of-day. Returns at most 366.
+  function _daysInPeriod(period, refTs, h, mi) {
+    const ref = new Date(refTs);
+    const out = [];
+    if (period === "week") {
+      // Monday-first; Monday is day 0 of the week.
+      const dow = ref.getDay(); // 0 = Sunday .. 6 = Saturday
+      const offsetToMon = (dow === 0 ? -6 : 1 - dow);
+      const start = new Date(ref.getFullYear(), ref.getMonth(), ref.getDate() + offsetToMon);
+      for (let i = 0; i < 7; i++) {
+        const d = new Date(start.getFullYear(), start.getMonth(), start.getDate() + i, h, mi, 0, 0);
+        out.push(d);
+      }
+    } else if (period === "month") {
+      const y = ref.getFullYear(), mo = ref.getMonth();
+      const last = new Date(y, mo + 1, 0).getDate();
+      for (let day = 1; day <= last; day++) {
+        out.push(new Date(y, mo, day, h, mi, 0, 0));
+      }
+    } else if (period === "year") {
+      const y = ref.getFullYear();
+      const isLeap = (y % 4 === 0 && y % 100 !== 0) || (y % 400 === 0);
+      const total = isLeap ? 366 : 365;
+      for (let i = 0; i < total; i++) {
+        out.push(new Date(y, 0, 1 + i, h, mi, 0, 0));
+      }
+    }
+    return out;
+  }
+
+  // Returns the timestamp of the rule's matching occurrence within the period
+  // containing refTs, or null if the period does not contain a matching day
+  // (e.g. asking for the 5th Tuesday in a month that only has 4).
+  function _occurrenceInPeriod(rule, refTs) {
+    const { period, weekday, n, fromEnd } = rule.position;
+    const s = new Date(rule.startAt);
+    const h = s.getHours(), mi = s.getMinutes();
+    let days = _daysInPeriod(period, refTs, h, mi);
+    if (weekday != null) days = days.filter(d => d.getDay() === weekday);
+    if (fromEnd) days = days.slice().reverse();
+    const pick = days[n - 1];
+    return pick ? pick.getTime() : null;
+  }
+
+  // Advance refTs to a date guaranteed to be in the next period.
+  function _nextPeriodRef(period, refTs) {
+    const d = new Date(refTs);
+    if (period === "week")  d.setDate(d.getDate() + 7);
+    else if (period === "month") d.setMonth(d.getMonth() + 1, 1);
+    else if (period === "year")  d.setFullYear(d.getFullYear() + 1, 0, 1);
+    return d.getTime();
+  }
+
   function ruleFirstOccurrence(rule) {
+    normalizeLegacySchedule(rule);
     const schedule = rule.schedule || "interval";
     if (schedule === "interval") return rule.startAt;
-    const s = new Date(rule.startAt);
-    const h = s.getHours(), mi = s.getMinutes(), sec = s.getSeconds(), ms = s.getMilliseconds();
-    let d;
-    if (WEEKLY_DOW[schedule] !== undefined) {
-      const targetDow = WEEKLY_DOW[schedule];
-      d = new Date(s.getFullYear(), s.getMonth(), s.getDate(), h, mi, sec, ms);
-      const daysAhead = (targetDow - d.getDay() + 7) % 7;
-      d.setDate(d.getDate() + daysAhead);
-      if (d.getTime() < rule.startAt) d.setDate(d.getDate() + 7);
-      return d.getTime();
-    }
-    switch (schedule) {
-      case "firstOfMonth":
-        d = new Date(s.getFullYear(), s.getMonth(), 1, h, mi, sec, ms);
-        if (d.getTime() < rule.startAt) d = new Date(s.getFullYear(), s.getMonth() + 1, 1, h, mi, sec, ms);
-        return d.getTime();
-      case "lastOfMonth":
-        d = new Date(s.getFullYear(), s.getMonth() + 1, 0, h, mi, sec, ms);
-        if (d.getTime() < rule.startAt) d = new Date(s.getFullYear(), s.getMonth() + 2, 0, h, mi, sec, ms);
-        return d.getTime();
-      case "firstOfYear":
-        d = new Date(s.getFullYear(), 0, 1, h, mi, sec, ms);
-        if (d.getTime() < rule.startAt) d = new Date(s.getFullYear() + 1, 0, 1, h, mi, sec, ms);
-        return d.getTime();
-      case "lastOfYear":
-        d = new Date(s.getFullYear(), 11, 31, h, mi, sec, ms);
-        if (d.getTime() < rule.startAt) d = new Date(s.getFullYear() + 1, 11, 31, h, mi, sec, ms);
-        return d.getTime();
+    if (schedule === "position") {
+      let ref = rule.startAt;
+      let safety = 0;
+      while (safety++ < SAFETY_ITERATIONS) {
+        const occ = _occurrenceInPeriod(rule, ref);
+        if (occ != null && occ >= rule.startAt) return occ;
+        ref = _nextPeriodRef(rule.position.period, ref);
+      }
+      return null;
     }
     return rule.startAt;
   }
-  // The n-th occurrence of a rule (n=0 is the first).
-  // Anchored at startAt so month/year arithmetic never drifts.
+
+  // The n-th occurrence (n=0 is the first). Iterates period-by-period for
+  // position-based schedules, skipping periods that don't contain a matching
+  // day (e.g. months without a 5th Tuesday).
   function nthOccurrence(rule, n) {
+    normalizeLegacySchedule(rule);
     const schedule = rule.schedule || "interval";
     if (schedule === "interval") {
       if (n === 0) return rule.startAt;
       return addInterval(rule.startAt, n * rule.every.amount, rule.every.unit);
     }
+    if (schedule !== "position") return null;
     const first = ruleFirstOccurrence(rule);
+    if (first == null) return null;
     if (n === 0) return first;
-    const f = new Date(first);
-    const h = f.getHours(), mi = f.getMinutes(), sec = f.getSeconds(), ms = f.getMilliseconds();
-    let d;
-    if (WEEKLY_DOW[schedule] !== undefined) {
-      d = new Date(f.getFullYear(), f.getMonth(), f.getDate(), h, mi, sec, ms);
-      d.setDate(d.getDate() + 7 * n);  // setDate is DST-safe for local hour
-      return d.getTime();
+    let ref = first;
+    let collected = 0;
+    let safety = 0;
+    while (safety++ < SAFETY_ITERATIONS) {
+      ref = _nextPeriodRef(rule.position.period, ref);
+      const occ = _occurrenceInPeriod(rule, ref);
+      if (occ != null) {
+        collected++;
+        if (collected === n) return occ;
+      }
     }
-    switch (schedule) {
-      case "firstOfMonth":
-        d = new Date(f.getFullYear(), f.getMonth() + n, 1, h, mi, sec, ms); break;
-      case "lastOfMonth":
-        d = new Date(f.getFullYear(), f.getMonth() + n + 1, 0, h, mi, sec, ms); break;
-      case "firstOfYear":
-        d = new Date(f.getFullYear() + n, 0, 1, h, mi, sec, ms); break;
-      case "lastOfYear":
-        d = new Date(f.getFullYear() + n, 11, 31, h, mi, sec, ms); break;
-      default:
-        return first;
+    return null;
+  }
+
+  // Human-readable schedule description used in rule rows and previews.
+  function scheduleLabel(rule) {
+    const s = rule.schedule || "interval";
+    if (s === "interval") return intervalLabel(rule.every);
+    if (s === "position") {
+      const { fromEnd, n, weekday, period } = rule.position;
+      const ordinal = ordinalLabel(n, fromEnd);
+      const dayKey = weekday == null ? "weekday.any" : ("weekday." + ["sun","mon","tue","wed","thu","fri","sat"][weekday]);
+      const periodKey = "period." + period;
+      return t("position.label", { ordinal, day: t(dayKey), period: t(periodKey) });
     }
-    return d.getTime();
+    return "";
+  }
+
+  // Renders an ordinal phrase, e.g. "1st", "2nd Last", "Sidste", "3. sidste".
+  function ordinalText(n) {
+    if (state.settings.lang === "da") return n + ".";
+    const rem100 = n % 100;
+    if (rem100 >= 11 && rem100 <= 13) return n + "th";
+    switch (n % 10) {
+      case 1: return n + "st";
+      case 2: return n + "nd";
+      case 3: return n + "rd";
+      default: return n + "th";
+    }
+  }
+  function ordinalLabel(n, fromEnd) {
+    if (fromEnd) {
+      if (n === 1) return t("ord.last");
+      return ordinalText(n) + " " + t("ord.lastSuffix");
+    }
+    return ordinalText(n);
+  }
+
+  // Reports validity for a position-based schedule.
+  // Returns { ok: bool, level: 'error'|'warn'|null, key: i18n key for the message, vars: {} }.
+  function positionValidity(position) {
+    if (!position) return { ok: false, level: "error", key: "validation.positionRequired" };
+    const { period, weekday, n, fromEnd } = position;
+    if (!Number.isInteger(n) || n < 1) return { ok: false, level: "error", key: "validation.positionTooSmall" };
+    if (period === "week") {
+      if (weekday != null && n > 1)  return { ok: false, level: "error", key: "validation.weekWeekdayOnce" };
+      if (weekday == null && n > 7)  return { ok: false, level: "error", key: "validation.weekDays" };
+    } else if (period === "month") {
+      if (weekday != null && n > 5)  return { ok: false, level: "error", key: "validation.monthWeekdayMax" };
+      if (weekday == null && n > 31) return { ok: false, level: "error", key: "validation.monthDaysMax" };
+      if (weekday != null && n === 5) return { ok: true, level: "warn", key: "validation.monthWeekday5" };
+      if (weekday == null && n > 28)  return { ok: true, level: "warn", key: "validation.monthDayShort", vars: { n } };
+    } else if (period === "year") {
+      if (weekday != null && n > 53)  return { ok: false, level: "error", key: "validation.yearWeekdayMax" };
+      if (weekday == null && n > 366) return { ok: false, level: "error", key: "validation.yearDaysMax" };
+      if (weekday != null && n === 53) return { ok: true, level: "warn", key: "validation.yearWeekday53" };
+      if (weekday == null && n === 366) return { ok: true, level: "warn", key: "validation.yearDay366" };
+    } else {
+      return { ok: false, level: "error", key: "validation.unknownPeriod" };
+    }
+    return { ok: true, level: null };
   }
 
   function endOfWeek(now) {
@@ -656,18 +805,18 @@
   const defaultState = () => {
     const lang = (navigator.language || "en").toLowerCase().startsWith("da") ? "da" : "en";
     return {
-      schemaVersion: 2,
+      schemaVersion: 3,
       onboardingDone: false,
       settings: { lang, theme: "auto" },
       currencies: defaultCurrencies(lang),
       categories: [],
-      silos: [],
+      accounts: [],
       rules: [],
       transactions: [],
-      activeTab: "silos",
+      activeTab: "accounts",
       forecastRange: "month",     // week | month | year | custom
       forecastCustom: null,       // timestamp
-      detailSiloId: null,         // when a silo detail view is open
+      detailAccountId: null,         // when an account detail view is open
     };
   };
 
@@ -692,24 +841,51 @@
   function migrate(loaded) {
     if (!loaded) return null;
     const fromVersion = loaded.schemaVersion || 1;
+    // v2 → v3: rename silos → accounts and all *Silo* fields on rules and
+    // transactions. Done up front so the rest of migration sees the new shape.
+    if (loaded.silos !== undefined && loaded.accounts === undefined) {
+      loaded.accounts = loaded.silos;
+      delete loaded.silos;
+    }
+    if (loaded.detailSiloId !== undefined) {
+      if (loaded.detailAccountId === undefined) loaded.detailAccountId = loaded.detailSiloId;
+      delete loaded.detailSiloId;
+    }
+    if (loaded.activeTab === "silos") loaded.activeTab = "accounts";
+    (loaded.rules || []).forEach(r => {
+      if (r.fromSiloId !== undefined) { r.fromAccountId = r.fromSiloId; delete r.fromSiloId; }
+      if (r.toSiloId   !== undefined) { r.toAccountId   = r.toSiloId;   delete r.toSiloId; }
+    });
+    (loaded.transactions || []).forEach(tx => {
+      if (tx.fromSiloId !== undefined) { tx.fromAccountId = tx.fromSiloId; delete tx.fromSiloId; }
+      if (tx.toSiloId   !== undefined) { tx.toAccountId   = tx.toSiloId;   delete tx.toSiloId; }
+    });
+
     loaded.settings ||= { lang: "en", theme: "auto" };
     loaded.settings.lang ||= "en";
     loaded.settings.theme ||= "auto";
     loaded.currencies ||= defaultCurrencies(loaded.settings.lang);
     loaded.categories ||= [];
-    loaded.silos ||= [];
+    loaded.accounts ||= [];
     loaded.rules ||= [];
     loaded.transactions ||= [];
-    loaded.activeTab ||= "silos";
+    loaded.activeTab ||= "accounts";
     loaded.forecastRange ||= "month";
     if (loaded.forecastCustom === undefined) loaded.forecastCustom = null;
-    loaded.detailSiloId ??= null;
+    loaded.detailAccountId ??= null;
     // defensive
-    loaded.silos.forEach(s => { s.balances ||= {}; });
+    loaded.accounts.forEach(s => { s.balances ||= {}; });
     loaded.rules.forEach(r => {
       if (r.active === undefined) r.active = true;
       if (r.schedule == null) r.schedule = "interval";
+      // v3: convert legacy schedule strings (firstOfMonth/lastOfMonth/firstOfYear/
+      // lastOfYear/weeklyMon..weeklySun) to the new {schedule:"position", position:{...}} shape.
+      normalizeLegacySchedule(r);
+      if (r.amountMode == null) r.amountMode = "fixed";
       if (r.occurrenceCount == null) r.occurrenceCount = deriveOccurrenceCount(r);
+    });
+    (loaded.transactions || []).forEach(tx => {
+      if (tx.amountMode == null) tx.amountMode = "fixed";
     });
     // v1 → v2: previous migration over-skipped a future occurrence for rules
     // with non-drifting units (week/day/hour/minute) because it always added a
@@ -722,7 +898,7 @@
         }
       });
     }
-    loaded.schemaVersion = 2;
+    loaded.schemaVersion = 3;
     return loaded;
   }
 
@@ -746,11 +922,11 @@
   /* ============================================================
      Look-ups
      ============================================================ */
-  const siloById     = id => state.silos.find(s => s.id === id);
+  const accountById     = id => state.accounts.find(s => s.id === id);
   const categoryById = id => state.categories.find(c => c.id === id);
 
-  function siloName(id) {
-    const s = siloById(id);
+  function accountName(id) {
+    const s = accountById(id);
     return s ? s.name : "—";
   }
   function categoryName(c) {
@@ -760,81 +936,103 @@
   /* ============================================================
      ENGINE — applying rules and pending transactions
      ============================================================ */
-  function ensureBalance(silo, ccy) {
-    if (silo.balances[ccy] == null) silo.balances[ccy] = 0;
+  function ensureBalance(account, ccy) {
+    if (account.balances[ccy] == null) account.balances[ccy] = 0;
   }
-  function applyOp(type, fromSiloId, toSiloId, amount, currency) {
+  function applyOp(type, fromAccountId, toAccountId, amount, currency) {
     if (type === "income") {
-      const to = siloById(toSiloId);
+      const to = accountById(toAccountId);
       if (to) { ensureBalance(to, currency); to.balances[currency] += amount; }
     } else if (type === "expense") {
-      const from = siloById(fromSiloId);
+      const from = accountById(fromAccountId);
       if (from) { ensureBalance(from, currency); from.balances[currency] -= amount; }
     } else if (type === "transfer") {
-      const from = siloById(fromSiloId);
-      const to   = siloById(toSiloId);
+      const from = accountById(fromAccountId);
+      const to   = accountById(toAccountId);
       if (from) { ensureBalance(from, currency); from.balances[currency] -= amount; }
       if (to)   { ensureBalance(to, currency);   to.balances[currency]   += amount; }
     }
   }
 
-  function applyDueTransactions(now) {
-    let any = false;
-    state.transactions.forEach(tx => {
-      if (tx.status === "pending" && tx.at <= now) {
-        applyOp(tx.type, tx.fromSiloId, tx.toSiloId, tx.amount, tx.currency);
-        tx.status = "applied";
-        any = true;
-      }
-    });
-    return any;
+  // Resolves the effective amount for an event taking amountMode into account.
+  // For "all", reads the current balance of the source account/currency.
+  function effectiveAmount(item) {
+    if ((item.amountMode || "fixed") !== "all") return item.amount;
+    if (!item.fromAccountId) return 0;
+    const from = accountById(item.fromAccountId);
+    return Math.max(0, (from?.balances?.[item.currency]) || 0);
   }
 
-  function applyDueRules(now) {
+  // Apply all overdue rule occurrences and pending transactions in strict
+  // chronological order. Order matters for "all" amount rules — a transfer-all
+  // that fires after an income tops up the source before the sweep, etc.
+  function settleNow() {
+    const now = Date.now();
+    const items = [];
+    state.transactions.forEach(tx => {
+      if (tx.status === "pending" && tx.at <= now) items.push({ at: tx.at, kind: "tx", tx });
+    });
     let warned = false;
-    let any = false;
     state.rules.forEach(rule => {
       if (!rule.active) return;
       let count = rule.occurrenceCount || 0;
       let next = nthOccurrence(rule, count);
       let safety = 0;
-      while (next <= now && (!rule.endAt || next <= rule.endAt)) {
+      while (next != null && next <= now && (!rule.endAt || next <= rule.endAt)) {
         if (++safety > SAFETY_ITERATIONS) {
-          rule.occurrenceCount = count;
           if (!warned) { toast(t("toast.tooMany")); warned = true; }
-          return;
+          break;
         }
-        applyOp(rule.type, rule.fromSiloId, rule.toSiloId, rule.amount, rule.currency);
-        state.transactions.push({
-          id: cryptoId(),
-          type: rule.type,
-          fromSiloId: rule.fromSiloId,
-          toSiloId: rule.toSiloId,
-          amount: rule.amount,
-          currency: rule.currency,
-          at: next,
-          status: "applied",
-          categoryId: rule.categoryId || null,
-          label: rule.label || "",
-          ruleId: rule.id,
-          createdAt: Date.now(),
-        });
-        rule.lastRunAt = next;
+        items.push({ at: next, kind: "rule", rule, count });
         count++;
-        any = true;
         next = nthOccurrence(rule, count);
       }
-      rule.occurrenceCount = count;
     });
-    return any;
+    items.sort((a, b) => {
+      if (a.at !== b.at) return a.at - b.at;
+      // tx before rule at same instant; arbitrary but stable
+      return a.kind === "tx" ? -1 : 1;
+    });
+
+    items.forEach(ev => {
+      if (ev.kind === "tx") {
+        const amt = effectiveAmount(ev.tx);
+        if (amt > 0) {
+          applyOp(ev.tx.type, ev.tx.fromAccountId, ev.tx.toAccountId, amt, ev.tx.currency);
+          ev.tx.amount = amt; // freeze the resolved amount on the record
+        }
+        ev.tx.status = "applied";
+      } else {
+        const r = ev.rule;
+        const amt = effectiveAmount(r);
+        if (amt > 0) {
+          applyOp(r.type, r.fromAccountId, r.toAccountId, amt, r.currency);
+          state.transactions.push({
+            id: cryptoId(),
+            type: r.type,
+            fromAccountId: r.fromAccountId,
+            toAccountId: r.toAccountId,
+            amount: amt,
+            currency: r.currency,
+            at: ev.at,
+            status: "applied",
+            categoryId: r.categoryId || null,
+            label: r.label || "",
+            ruleId: r.id,
+            amountMode: r.amountMode || "fixed",
+            createdAt: Date.now(),
+          });
+        }
+        r.lastRunAt = ev.at;
+        r.occurrenceCount = ev.count + 1;
+      }
+    });
+    if (items.length) save();
   }
 
-  function settleNow() {
-    const now = Date.now();
-    const a = applyDueTransactions(now);
-    const b = applyDueRules(now);
-    if (a || b) save();
-  }
+  // Back-compat shims for tests that previously called these directly.
+  function applyDueTransactions(now) { /* deprecated — settleNow covers this */ settleNow(); }
+  function applyDueRules(now)        { /* deprecated — settleNow covers this */ settleNow(); }
 
   /* ============================================================
      FORECAST
@@ -860,64 +1058,93 @@
     return out;
   }
 
-  // Build a chronological list of all future events affecting a silo
-  // between now and targetTs. Each event: { at, delta:{currency: amount}, label, type }
-  function futureSiloEvents(siloId, now, targetTs) {
-    const events = [];
-    // Future pending transactions
+  // Simulates the entire system forward from now to targetTs. Required so
+  // "all balance" rules use the *projected* source balance at the time the
+  // rule fires, not the current balance. Returns per-account views.
+  function forecastAll(targetTs) {
+    const now = Date.now();
+    const balances = {};
+    state.accounts.forEach(a => balances[a.id] = { ...a.balances });
+
+    // Collect future events
+    const items = [];
     state.transactions.forEach(tx => {
-      if (tx.status !== "pending") return;
-      if (tx.at <= now || tx.at > targetTs) return;
-      const delta = {};
-      if (tx.type === "income" && tx.toSiloId === siloId) delta[tx.currency] = (delta[tx.currency] || 0) + tx.amount;
-      if (tx.type === "expense" && tx.fromSiloId === siloId) delta[tx.currency] = (delta[tx.currency] || 0) - tx.amount;
-      if (tx.type === "transfer") {
-        if (tx.toSiloId === siloId)   delta[tx.currency] = (delta[tx.currency] || 0) + tx.amount;
-        if (tx.fromSiloId === siloId) delta[tx.currency] = (delta[tx.currency] || 0) - tx.amount;
+      if (tx.status === "pending" && tx.at > now && tx.at <= targetTs) {
+        items.push({
+          at: tx.at, type: tx.type,
+          fromAccountId: tx.fromAccountId, toAccountId: tx.toAccountId,
+          amount: tx.amount, currency: tx.currency,
+          amountMode: tx.amountMode || "fixed",
+          label: tx.label || "", source: "tx",
+        });
       }
-      if (Object.keys(delta).length) events.push({ at: tx.at, delta, label: tx.label || "—", type: tx.type, source: "tx" });
     });
-    // Future rule occurrences
     state.rules.forEach(rule => {
-      const affects =
-        (rule.type === "income"   && rule.toSiloId === siloId) ||
-        (rule.type === "expense"  && rule.fromSiloId === siloId) ||
-        (rule.type === "transfer" && (rule.toSiloId === siloId || rule.fromSiloId === siloId));
-      if (!affects) return;
-      const occ = futureRuleOccurrences(rule, now, targetTs);
-      occ.forEach(at => {
-        const delta = {};
-        if (rule.type === "income") delta[rule.currency] = rule.amount;
-        else if (rule.type === "expense") delta[rule.currency] = -rule.amount;
-        else if (rule.type === "transfer") {
-          if (rule.toSiloId === siloId)   delta[rule.currency] = (delta[rule.currency] || 0) + rule.amount;
-          if (rule.fromSiloId === siloId) delta[rule.currency] = (delta[rule.currency] || 0) - rule.amount;
-        }
-        if (Object.keys(delta).length) events.push({ at, delta, label: rule.label || "—", type: rule.type, source: "rule" });
+      if (!rule.active) return;
+      const occs = futureRuleOccurrences(rule, now, targetTs);
+      occs.forEach(at => {
+        items.push({
+          at, type: rule.type,
+          fromAccountId: rule.fromAccountId, toAccountId: rule.toAccountId,
+          amount: rule.amount, currency: rule.currency,
+          amountMode: rule.amountMode || "fixed",
+          label: rule.label || "", source: "rule",
+        });
       });
     });
-    events.sort((a, b) => a.at - b.at);
-    return events;
-  }
+    items.sort((a, b) => {
+      if (a.at !== b.at) return a.at - b.at;
+      return a.source === "tx" ? -1 : 1;
+    });
 
-  // Given silo + targetTs, returns:
-  //   { now: balances now, projected: balances at target, perCurrencyFlow: {ccy: {in, out}}, events }
-  function forecastSilo(siloId, targetTs) {
-    const silo = siloById(siloId);
-    const now = Date.now();
-    const nowBalances = { ...silo.balances };
-    const projected = { ...silo.balances };
-    const perCurrencyFlow = {};
-    const events = futureSiloEvents(siloId, now, targetTs);
-    events.forEach(ev => {
-      for (const ccy in ev.delta) {
-        projected[ccy] = (projected[ccy] || 0) + ev.delta[ccy];
-        perCurrencyFlow[ccy] ||= { in: 0, out: 0 };
-        if (ev.delta[ccy] > 0) perCurrencyFlow[ccy].in += ev.delta[ccy];
-        else perCurrencyFlow[ccy].out += -ev.delta[ccy];
+    const perAccount = {};
+    state.accounts.forEach(a => {
+      perAccount[a.id] = {
+        now: { ...a.balances },
+        projected: { ...balances[a.id] },
+        perCurrencyFlow: {},
+        events: [],
+      };
+    });
+
+    const recordDelta = (acctId, ccy, delta, ev) => {
+      const b = balances[acctId];
+      if (!b) return;
+      b[ccy] = (b[ccy] || 0) + delta;
+      const pa = perAccount[acctId];
+      pa.projected[ccy] = b[ccy];
+      pa.events.push({ at: ev.at, delta: { [ccy]: delta }, label: ev.label, type: ev.type, source: ev.source });
+      pa.perCurrencyFlow[ccy] ||= { in: 0, out: 0 };
+      if (delta > 0) pa.perCurrencyFlow[ccy].in  += delta;
+      else            pa.perCurrencyFlow[ccy].out += -delta;
+    };
+
+    items.forEach(ev => {
+      let amount = ev.amount;
+      if (ev.amountMode === "all" && ev.fromAccountId) {
+        const fromB = balances[ev.fromAccountId];
+        amount = Math.max(0, (fromB && fromB[ev.currency]) || 0);
+      }
+      if (amount === 0) return;
+      if (ev.type === "income") {
+        if (ev.toAccountId)   recordDelta(ev.toAccountId,   ev.currency,  amount, ev);
+      } else if (ev.type === "expense") {
+        if (ev.fromAccountId) recordDelta(ev.fromAccountId, ev.currency, -amount, ev);
+      } else if (ev.type === "transfer") {
+        if (ev.fromAccountId) recordDelta(ev.fromAccountId, ev.currency, -amount, ev);
+        if (ev.toAccountId)   recordDelta(ev.toAccountId,   ev.currency,  amount, ev);
       }
     });
-    return { now: nowBalances, projected, perCurrencyFlow, events, targetTs, atNow: now };
+
+    return { perAccount, atNow: now, targetTs };
+  }
+
+  // Per-account forecast — runs the global simulation and extracts one account.
+  function forecastAccount(accountId, targetTs) {
+    const all = forecastAll(targetTs);
+    const pa = all.perAccount[accountId];
+    if (!pa) return { now: {}, projected: {}, perCurrencyFlow: {}, events: [], atNow: all.atNow, targetTs };
+    return { ...pa, atNow: all.atNow, targetTs };
   }
 
   function rangeTargetTs(range, customTs) {
@@ -964,10 +1191,10 @@
     currentStep = Math.max(1, Math.min(STEP_COUNT, n));
     $$(".step", onboarding).forEach(s => s.classList.toggle("is-active", +s.dataset.step === currentStep));
     renderDots();
-    if (currentStep === 4) refreshOnboardingSiloCurrencies();
+    if (currentStep === 4) refreshOnboardingAccountCurrencies();
   }
-  function refreshOnboardingSiloCurrencies() {
-    const sel = $("#onboardSiloCcy");
+  function refreshOnboardingAccountCurrencies() {
+    const sel = $("#onboardAccountCcy");
     sel.innerHTML = "";
     state.currencies.forEach(c => sel.appendChild(el("option", { value: c.code }, c.code)));
   }
@@ -989,18 +1216,18 @@
       state.currencies = state.currencies.filter(c => c.code && c.code.trim());
       if (state.currencies.length === 0) state.currencies = defaultCurrencies(state.settings.lang);
 
-      const name = $("#onboardSiloName").value.trim() || "Checking";
-      const amt = parseFloat($("#onboardSiloAmt").value);
-      const ccy = $("#onboardSiloCcy").value || state.currencies[0].code;
+      const name = $("#onboardAccountName").value.trim() || "Checking";
+      const amt = parseFloat($("#onboardAccountAmt").value);
+      const ccy = $("#onboardAccountCcy").value || state.currencies[0].code;
 
-      const silo = {
+      const account = {
         id: cryptoId(),
         name, icon: "🏦", color: "#14B8A6", notes: "",
         balances: {},
         createdAt: Date.now(),
       };
-      if (!isNaN(amt) && amt !== 0) silo.balances[ccy] = amt;
-      state.silos.push(silo);
+      if (!isNaN(amt) && amt !== 0) account.balances[ccy] = amt;
+      state.accounts.push(account);
 
       state.onboardingDone = true;
       save();
@@ -1049,7 +1276,7 @@
     state.currencies.forEach((c, idx) => {
       const row = el("div", { class: "currency-row" });
       const code = el("input", { class: "code", type: "text", value: c.code, maxlength: 8, placeholder: t("currency.code") });
-      code.oninput = (e) => { c.code = e.target.value.toUpperCase().trim(); save(); render(); refreshOnboardingSiloCurrencies(); };
+      code.oninput = (e) => { c.code = e.target.value.toUpperCase().trim(); save(); render(); refreshOnboardingAccountCurrencies(); };
       const name = el("input", { type: "text", value: c.name || "", maxlength: 30, placeholder: t("currency.name") });
       name.oninput = (e) => { c.name = e.target.value; save(); };
       const del = el("button", { class: "del", type: "button", title: "Delete", "aria-label": "Delete",
@@ -1059,7 +1286,7 @@
         state.currencies.splice(idx, 1);
         save();
         renderCurrencyEditor(container);
-        refreshOnboardingSiloCurrencies();
+        refreshOnboardingAccountCurrencies();
         render();
       };
       row.appendChild(code);
@@ -1130,7 +1357,7 @@
       state.currencies.push({ code: "", name: "" });
       save();
       renderCurrencyEditor($("#settingsCurrencies"));
-      refreshOnboardingSiloCurrencies();
+      refreshOnboardingAccountCurrencies();
     };
     $("#settingsAddCategory").onclick = () => {
       state.categories.push({ id: cryptoId(), name: "", color: "#14B8A6", icon: null });
@@ -1262,12 +1489,12 @@
     dlg.hidden = false;
     const cleanup = () => {
       dlg.hidden = true;
-      $("#chooseSilo").onclick = null;
+      $("#chooseAccount").onclick = null;
       $("#chooseTx").onclick = null;
       $("#chooseRule").onclick = null;
       $$("[data-cancel]", dlg).forEach(b => b.onclick = null);
     };
-    $("#chooseSilo").onclick = () => { cleanup(); openSiloModal(); };
+    $("#chooseAccount").onclick = () => { cleanup(); openAccountModal(); };
     $("#chooseTx").onclick   = () => { cleanup(); openTxModal(); };
     $("#chooseRule").onclick = () => { cleanup(); openRuleModal(); };
     $$("[data-cancel]", dlg).forEach(b => b.onclick = cleanup);
@@ -1276,28 +1503,28 @@
   /* ============================================================
      SILO MODAL
      ============================================================ */
-  let editingSiloId = null;
-  let pendingSiloIcon = null;
+  let editingAccountId = null;
+  let pendingAccountIcon = null;
 
-  function openSiloModal(silo) {
-    editingSiloId = silo?.id || null;
-    pendingSiloIcon = silo?.icon || "🏦";
-    $("#siloModalTitle").textContent = t(silo ? "silo.edit" : "silo.new");
-    $("#siloName").value = silo?.name || "";
-    $("#siloColor").value = silo?.color || "#14B8A6";
-    $("#siloNotes").value = silo?.notes || "";
-    $("#siloIconBtn").textContent = pendingSiloIcon || "＋";
-    renderSiloBalanceRows(silo?.balances || {});
-    $("#deleteSiloBtn").hidden = !silo;
-    $("#siloModal").hidden = false;
-    setTimeout(() => $("#siloName").focus(), 60);
+  function openAccountModal(account) {
+    editingAccountId = account?.id || null;
+    pendingAccountIcon = account?.icon || "🏦";
+    $("#accountModalTitle").textContent = t(account ? "account.edit" : "account.new");
+    $("#accountName").value = account?.name || "";
+    $("#accountColor").value = account?.color || "#14B8A6";
+    $("#accountNotes").value = account?.notes || "";
+    $("#accountIconBtn").textContent = pendingAccountIcon || "＋";
+    renderAccountBalanceRows(account?.balances || {});
+    $("#deleteAccountBtn").hidden = !account;
+    $("#accountModal").hidden = false;
+    setTimeout(() => $("#accountName").focus(), 60);
   }
-  function closeSiloModal() {
-    $("#siloModal").hidden = true;
-    editingSiloId = null;
+  function closeAccountModal() {
+    $("#accountModal").hidden = true;
+    editingAccountId = null;
   }
-  function renderSiloBalanceRows(balances) {
-    const container = $("#siloBalanceRows");
+  function renderAccountBalanceRows(balances) {
+    const container = $("#accountBalanceRows");
     container.innerHTML = "";
     const rows = [];
     // existing balances
@@ -1322,49 +1549,49 @@
     row.appendChild(sel); row.appendChild(amt); row.appendChild(del);
     return row;
   }
-  function bindSiloModal() {
-    $$("[data-close-modal]", $("#siloModal")).forEach(b => b.onclick = closeSiloModal);
-    $("#siloIconBtn").onclick = () => openIconPicker(ic => {
-      pendingSiloIcon = ic;
-      $("#siloIconBtn").textContent = ic || "＋";
-    }, pendingSiloIcon);
-    $("#addBalanceRow").onclick = () => $("#siloBalanceRows").appendChild(makeBalanceRow("", ""));
-    $("#siloForm").onsubmit = (e) => {
+  function bindAccountModal() {
+    $$("[data-close-modal]", $("#accountModal")).forEach(b => b.onclick = closeAccountModal);
+    $("#accountIconBtn").onclick = () => openIconPicker(ic => {
+      pendingAccountIcon = ic;
+      $("#accountIconBtn").textContent = ic || "＋";
+    }, pendingAccountIcon);
+    $("#addBalanceRow").onclick = () => $("#accountBalanceRows").appendChild(makeBalanceRow("", ""));
+    $("#accountForm").onsubmit = (e) => {
       e.preventDefault();
-      const name = $("#siloName").value.trim();
+      const name = $("#accountName").value.trim();
       if (!name) return;
-      const color = $("#siloColor").value;
-      const notes = $("#siloNotes").value.trim();
+      const color = $("#accountColor").value;
+      const notes = $("#accountNotes").value.trim();
       const balances = {};
-      $$(".balance-edit-row", $("#siloBalanceRows")).forEach(row => {
+      $$(".balance-edit-row", $("#accountBalanceRows")).forEach(row => {
         const code = row.querySelector("select").value;
         const v = parseFloat(row.querySelector('input[type="number"]').value);
         if (!code) return;
         const amount = isNaN(v) ? 0 : v;
         balances[code] = (balances[code] || 0) + amount;
       });
-      if (editingSiloId) {
-        const s = siloById(editingSiloId);
+      if (editingAccountId) {
+        const s = accountById(editingAccountId);
         if (s) {
-          Object.assign(s, { name, color, notes, icon: pendingSiloIcon, balances });
+          Object.assign(s, { name, color, notes, icon: pendingAccountIcon, balances });
           toast(t("toast.updated"));
         }
       } else {
-        state.silos.push({
+        state.accounts.push({
           id: cryptoId(),
           name, color, notes,
-          icon: pendingSiloIcon || "🏦",
+          icon: pendingAccountIcon || "🏦",
           balances,
           createdAt: Date.now(),
         });
         toast(t("toast.created"));
       }
       save();
-      closeSiloModal();
+      closeAccountModal();
       render();
     };
-    $("#deleteSiloBtn").onclick = async () => {
-      if (!editingSiloId) return;
+    $("#deleteAccountBtn").onclick = async () => {
+      if (!editingAccountId) return;
       const ok = await confirmDialog({
         title: t("confirm.deleteTitle"),
         body: t("confirm.deleteBody"),
@@ -1372,15 +1599,15 @@
         danger: true,
       });
       if (!ok) return;
-      const id = editingSiloId;
-      // remove any rules and transactions that reference this silo
-      state.rules = state.rules.filter(r => r.fromSiloId !== id && r.toSiloId !== id);
-      state.transactions = state.transactions.filter(x => x.fromSiloId !== id && x.toSiloId !== id);
-      state.silos = state.silos.filter(s => s.id !== id);
-      if (state.detailSiloId === id) state.detailSiloId = null;
+      const id = editingAccountId;
+      // remove any rules and transactions that reference this account
+      state.rules = state.rules.filter(r => r.fromAccountId !== id && r.toAccountId !== id);
+      state.transactions = state.transactions.filter(x => x.fromAccountId !== id && x.toAccountId !== id);
+      state.accounts = state.accounts.filter(s => s.id !== id);
+      if (state.detailAccountId === id) state.detailAccountId = null;
       save();
-      closeSiloModal();
-      if (state.detailSiloId === null) closeDetail();
+      closeAccountModal();
+      if (state.detailAccountId === null) closeDetail();
       render();
       toast(t("toast.deleted"));
     };
@@ -1392,21 +1619,31 @@
   let editingTxId = null;
   let txType = "expense";
 
-  function openTxModal(tx, presetSiloId) {
+  function openTxModal(tx, presetAccountId) {
     editingTxId = tx?.id || null;
     txType = tx?.type || "expense";
     $("#txModalTitle").textContent = t(tx ? "tx.edit" : "tx.new");
     updateTxTypeUI();
-    refreshTxSiloOptions(tx, presetSiloId);
+    refreshTxAccountOptions(tx, presetAccountId);
     refreshTxCategoryOptions();
     fillTxCurrencyOptions(tx?.currency);
     $("#txAmount").value = tx?.amount ?? "";
+    $("#txAllAmount").checked = (tx?.amountMode === "all");
     $("#txWhen").value = toLocalInputValue(tx?.at ?? Date.now());
     $("#txCategory").value = tx?.categoryId || "";
     $("#txLabel").value = tx?.label || "";
     $("#deleteTxBtn").hidden = !tx;
+    updateTxAmountUI();
     $("#txModal").hidden = false;
     setTimeout(() => $("#txAmount").focus(), 60);
+  }
+  function updateTxAmountUI() {
+    const allowAll = txType !== "income";
+    $("#txAllAmountField").hidden = !allowAll;
+    if (!allowAll) $("#txAllAmount").checked = false;
+    $("#txAmount").disabled = $("#txAllAmount").checked;
+    $("#txAmount").required = !$("#txAllAmount").checked;
+    $("#txAmount").placeholder = $("#txAllAmount").checked ? t("rule.allAmount") : "";
   }
   function closeTxModal() {
     $("#txModal").hidden = true;
@@ -1414,24 +1651,23 @@
   }
   function updateTxTypeUI() {
     $$("#txTypeSeg button").forEach(b => b.classList.toggle("is-active", b.dataset.type === txType));
-    // From + To visibility
     $("#txFromField").hidden = (txType === "income");
     $("#txToField").hidden   = (txType === "expense");
-    const fromLbl = txType === "transfer" ? t("tx.from") : t("tx.from");
-    $("#txFromField").querySelector("span").textContent = fromLbl;
+    $("#txFromField").querySelector("span").textContent = t("tx.from");
     $("#txToField").querySelector("span").textContent = t("tx.to");
+    updateTxAmountUI();
   }
-  function refreshTxSiloOptions(tx, presetSiloId) {
+  function refreshTxAccountOptions(tx, presetAccountId) {
     const from = $("#txFrom"); from.innerHTML = "";
     const to   = $("#txTo");   to.innerHTML = "";
-    state.silos.forEach(s => {
+    state.accounts.forEach(s => {
       from.appendChild(el("option", { value: s.id }, (s.icon ? s.icon + " " : "") + s.name));
       to  .appendChild(el("option", { value: s.id }, (s.icon ? s.icon + " " : "") + s.name));
     });
-    if (tx) { from.value = tx.fromSiloId || ""; to.value = tx.toSiloId || ""; }
+    if (tx) { from.value = tx.fromAccountId || ""; to.value = tx.toAccountId || ""; }
     else {
-      from.value = presetSiloId || (state.silos[0]?.id || "");
-      to.value = presetSiloId || (state.silos[0]?.id || "");
+      from.value = presetAccountId || (state.accounts[0]?.id || "");
+      to.value = presetAccountId || (state.accounts[0]?.id || "");
     }
   }
   function refreshTxCategoryOptions() {
@@ -1451,51 +1687,66 @@
   function bindTxModal() {
     $$("[data-close-modal]", $("#txModal")).forEach(b => b.onclick = closeTxModal);
     $$("#txTypeSeg button").forEach(b => b.onclick = () => { txType = b.dataset.type; updateTxTypeUI(); });
+    $("#txAllAmount").addEventListener("change", updateTxAmountUI);
 
     $("#txForm").onsubmit = (e) => {
       e.preventDefault();
-      const amount = parseFloat($("#txAmount").value);
-      if (isNaN(amount) || amount <= 0) return;
+      const allMode = $("#txAllAmount").checked && txType !== "income";
+      const formAmount = parseFloat($("#txAmount").value);
+      if (!allMode && (isNaN(formAmount) || formAmount <= 0)) return;
       const currency = $("#txCurrency").value;
       const at = fromLocalInputValue($("#txWhen").value) || Date.now();
       const categoryId = $("#txCategory").value || null;
       const label = $("#txLabel").value.trim();
-      const fromSiloId = (txType === "income") ? null : $("#txFrom").value;
-      const toSiloId   = (txType === "expense") ? null : $("#txTo").value;
-      if (txType === "transfer" && fromSiloId === toSiloId) {
+      const fromAccountId = (txType === "income") ? null : $("#txFrom").value;
+      const toAccountId   = (txType === "expense") ? null : $("#txTo").value;
+      if (txType === "transfer" && fromAccountId === toAccountId) {
         alert("From and To must differ.");
         return;
       }
+      const amountMode = allMode ? "all" : "fixed";
 
-      // Build / update
-      const wasApplied = editingTxId && state.transactions.find(x => x.id === editingTxId)?.status === "applied";
+      // Helper to resolve the amount for "all" using the current source balance
+      const resolveAmount = (storedAmount, mode, fromId, ccy) => {
+        if (mode !== "all") return storedAmount;
+        const from = accountById(fromId);
+        return Math.max(0, (from?.balances?.[ccy]) || 0);
+      };
+
       if (editingTxId) {
-        // Reverse previous if applied, then re-apply or set pending
         const existing = state.transactions.find(x => x.id === editingTxId);
         if (existing) {
+          // Reverse previous (if applied) using the recorded amount; "all" tx
+          // already has the resolved amount stored.
           if (existing.status === "applied") {
-            // reverse the old op
-            applyOp(reverseType(existing.type), existing.toSiloId, existing.fromSiloId, existing.amount, existing.currency);
-            // Actually easier: invert sign of amount with original type
-            // The line above used reverseType which we'll define
+            applyOp(reverseType(existing.type), existing.toAccountId, existing.fromAccountId, existing.amount, existing.currency);
           }
-          Object.assign(existing, { type: txType, fromSiloId, toSiloId, amount, currency, at, categoryId, label });
+          const baseAmount = allMode ? 0 : formAmount;
+          Object.assign(existing, { type: txType, fromAccountId, toAccountId, amount: baseAmount, currency, at, categoryId, label, amountMode });
           existing.status = (at <= Date.now()) ? "applied" : "pending";
           if (existing.status === "applied") {
-            applyOp(existing.type, existing.fromSiloId, existing.toSiloId, existing.amount, existing.currency);
+            const amt = resolveAmount(existing.amount, existing.amountMode, existing.fromAccountId, existing.currency);
+            applyOp(existing.type, existing.fromAccountId, existing.toAccountId, amt, existing.currency);
+            existing.amount = amt; // freeze resolved amount
           }
         }
         toast(t("toast.updated"));
       } else {
         const status = (at <= Date.now()) ? "applied" : "pending";
+        const baseAmount = allMode ? 0 : formAmount;
         const tx = {
           id: cryptoId(),
-          type: txType, fromSiloId, toSiloId,
-          amount, currency, at, status, categoryId, label,
-          ruleId: null, createdAt: Date.now(),
+          type: txType, fromAccountId, toAccountId,
+          amount: baseAmount, currency, at, status, categoryId, label,
+          ruleId: null, amountMode,
+          createdAt: Date.now(),
         };
         state.transactions.push(tx);
-        if (status === "applied") applyOp(tx.type, tx.fromSiloId, tx.toSiloId, tx.amount, tx.currency);
+        if (status === "applied") {
+          const amt = resolveAmount(tx.amount, tx.amountMode, tx.fromAccountId, tx.currency);
+          applyOp(tx.type, tx.fromAccountId, tx.toAccountId, amt, tx.currency);
+          tx.amount = amt; // freeze
+        }
         toast(t("toast.created"));
       }
       save();
@@ -1509,7 +1760,7 @@
       if (!ok) return;
       if (existing && existing.status === "applied") {
         // reverse it
-        applyOp(reverseType(existing.type), existing.toSiloId, existing.fromSiloId, existing.amount, existing.currency);
+        applyOp(reverseType(existing.type), existing.toAccountId, existing.fromAccountId, existing.amount, existing.currency);
       }
       state.transactions = state.transactions.filter(x => x.id !== editingTxId);
       save();
@@ -1520,20 +1771,20 @@
   }
   function reverseType(type) {
     // Swap to/from semantics so applyOp(reverseType,...) undoes the original.
-    // applyOp uses: income->toSilo +amt; expense->fromSilo -amt; transfer->from -amt, to +amt
-    // We want to undo: income should subtract from the original toSilo;
-    // expense should add to original fromSilo; transfer should flip directions.
-    // The cleanest is: call applyOp with type=opposite + same silos
-    if (type === "income")   return "expense";    // applied as expense from original toSilo
-    if (type === "expense")  return "income";     // applied as income to original fromSilo? But applyOp uses fromSiloId for expense.
+    // applyOp uses: income->toAccount +amt; expense->fromAccount -amt; transfer->from -amt, to +amt
+    // We want to undo: income should subtract from the original toAccount;
+    // expense should add to original fromAccount; transfer should flip directions.
+    // The cleanest is: call applyOp with type=opposite + same accounts
+    if (type === "income")   return "expense";    // applied as expense from original toAccount
+    if (type === "expense")  return "income";     // applied as income to original fromAccount? But applyOp uses fromAccountId for expense.
     return "transfer";                            // for transfer we'll swap from/to ourselves in caller
   }
   // Note: the helper above is a tiny hack — it works for income/expense but transfer needs from/to swap, which we do
-  // in the call site by passing (toSiloId, fromSiloId). So let's fix that here too.
-  // Actually look at the call site: applyOp(reverseType(existing.type), existing.toSiloId, existing.fromSiloId, ...).
-  // For income: original applied +amt to toSiloId. We pass reverseType="expense" with from=toSiloId. expense uses fromSiloId -> -amt from toSiloId. Correct.
-  // For expense: original -amt from fromSiloId. We pass reverseType="income" with to=fromSiloId. income uses toSiloId -> +amt to fromSiloId. Correct.
-  // For transfer: original -amt from from, +amt to to. We pass reverseType="transfer" with from=toSiloId, to=fromSiloId. That gives -amt from toSiloId, +amt to fromSiloId. Correct.
+  // in the call site by passing (toAccountId, fromAccountId). So let's fix that here too.
+  // Actually look at the call site: applyOp(reverseType(existing.type), existing.toAccountId, existing.fromAccountId, ...).
+  // For income: original applied +amt to toAccountId. We pass reverseType="expense" with from=toAccountId. expense uses fromAccountId -> -amt from toAccountId. Correct.
+  // For expense: original -amt from fromAccountId. We pass reverseType="income" with to=fromAccountId. income uses toAccountId -> +amt to fromAccountId. Correct.
+  // For transfer: original -amt from from, +amt to to. We pass reverseType="transfer" with from=toAccountId, to=fromAccountId. That gives -amt from toAccountId, +amt to fromAccountId. Correct.
   // Great.
 
   /* ============================================================
@@ -1542,20 +1793,28 @@
   let editingRuleId = null;
   let ruleType = "expense";
 
-  function openRuleModal(rule, presetSiloId) {
+  function openRuleModal(rule, presetAccountId) {
     editingRuleId = rule?.id || null;
     ruleType = rule?.type || "expense";
     $("#ruleModalTitle").textContent = t(rule ? "rule.edit" : "rule.new");
     updateRuleTypeUI();
-    refreshRuleSiloOptions(rule, presetSiloId);
+    refreshRuleAccountOptions(rule, presetAccountId);
     refreshRuleCategoryOptions();
     fillRuleCurrencyOptions(rule?.currency);
     $("#ruleLabel").value      = rule?.label || "";
     $("#ruleAmount").value     = rule?.amount ?? "";
+    $("#ruleAllAmount").checked = (rule?.amountMode === "all");
     const sched = rule?.schedule || "interval";
     $("#ruleSchedule").value   = sched;
     $("#ruleEveryAmount").value = rule?.every?.amount ?? 1;
     $("#ruleEveryUnit").value   = rule?.every?.unit   ?? "month";
+    // Position controls
+    const pos = rule?.position || { fromEnd: false, n: 1, weekday: null, period: "month" };
+    $("#rulePosDirection").value = pos.fromEnd ? "end" : "start";
+    $("#rulePosN").value         = pos.n ?? 1;
+    $("#rulePosWeekday").value   = pos.weekday == null ? "" : String(pos.weekday);
+    $("#rulePosPeriod").value    = pos.period || "month";
+
     const baseTs = rule?.startAt ?? Date.now();
     $("#ruleStartAt").value     = toLocalInputValue(baseTs);
     const baseDate = new Date(baseTs);
@@ -1566,11 +1825,12 @@
     $("#ruleActive").checked    = rule ? !!rule.active : true;
     $("#deleteRuleBtn").hidden  = !rule;
     updateRuleScheduleUI();
+    updateRuleAmountUI();
     $("#ruleModal").hidden = false;
     setTimeout(() => $("#ruleLabel").focus(), 60);
   }
   // Compose a startAt timestamp from the form, choosing the date+time picker
-  // for interval mode and time-only (today) for everything else.
+  // for interval mode and time-only (today) for position/special modes.
   function ruleFormStartAt() {
     const sched = $("#ruleSchedule").value || "interval";
     if (sched === "interval") return fromLocalInputValue($("#ruleStartAt").value) || Date.now();
@@ -1580,19 +1840,73 @@
     d.setHours(isNaN(hh) ? 9 : hh, isNaN(mm) ? 0 : mm, 0, 0);
     return d.getTime();
   }
+  function ruleFormPosition() {
+    return {
+      fromEnd:  $("#rulePosDirection").value === "end",
+      n:        Math.max(1, parseInt($("#rulePosN").value, 10) || 1),
+      weekday:  $("#rulePosWeekday").value === "" ? null : parseInt($("#rulePosWeekday").value, 10),
+      period:   $("#rulePosPeriod").value || "month",
+    };
+  }
+  // Hide amount input + currency when "All balance" is checked. Always show
+  // currency (it determines which currency on the source to drain).
+  function updateRuleAmountUI() {
+    const all = $("#ruleAllAmount").checked;
+    const allowAll = ruleType !== "income";  // income has no fromAccount
+    $("#ruleAllAmountField").hidden = !allowAll;
+    if (!allowAll) $("#ruleAllAmount").checked = false;
+    $("#ruleAmount").disabled = $("#ruleAllAmount").checked;
+    $("#ruleAmount").required = !$("#ruleAllAmount").checked;
+    if ($("#ruleAllAmount").checked) {
+      $("#ruleAmount").placeholder = t("rule.allAmount");
+    } else {
+      $("#ruleAmount").placeholder = "";
+    }
+  }
   function updateRuleScheduleUI() {
     const sched = $("#ruleSchedule").value || "interval";
     const isInterval = sched === "interval";
+    const isPosition = sched === "position";
     $("#ruleEveryField").hidden    = !isInterval;
     $("#ruleStartAtField").hidden  = !isInterval;
+    $("#rulePositionField").hidden = !isPosition;
     $("#ruleTimeField").hidden     = isInterval;
 
+    // Position validation
+    const valEl = $("#rulePosValidation");
+    if (isPosition) {
+      const pos = ruleFormPosition();
+      const v = positionValidity(pos);
+      valEl.classList.remove("position-warn", "position-error");
+      if (!v.ok) {
+        valEl.hidden = false;
+        valEl.classList.add("position-error");
+        valEl.textContent = t(v.key, v.vars || {});
+      } else if (v.level === "warn") {
+        valEl.hidden = false;
+        valEl.classList.add("position-warn");
+        valEl.textContent = t(v.key, v.vars || {});
+      } else {
+        valEl.hidden = true;
+      }
+      // Disable save when invalid
+      $$("#ruleForm button[type=submit]").forEach(b => b.disabled = !v.ok);
+    } else {
+      valEl.hidden = true;
+      $$("#ruleForm button[type=submit]").forEach(b => b.disabled = false);
+    }
+
+    // Live "First occurrence" preview
     const startAt = ruleFormStartAt();
     const everyAmt = Math.max(1, parseInt($("#ruleEveryAmount").value, 10) || 1);
     const everyUnit = $("#ruleEveryUnit").value || "month";
-    const tempRule = { schedule: sched, startAt, every: { amount: everyAmt, unit: everyUnit } };
-    const first = ruleFirstOccurrence(tempRule);
-    const previewText = t("rule.firstWillBe", { date: fmtDateTime(first) });
+    const tempRule = {
+      schedule: sched, startAt,
+      every: { amount: everyAmt, unit: everyUnit },
+      position: isPosition ? ruleFormPosition() : undefined,
+    };
+    const first = (sched === "position" && !positionValidity(tempRule.position).ok) ? null : ruleFirstOccurrence(tempRule);
+    const previewText = first != null ? t("rule.firstWillBe", { date: fmtDateTime(first) }) : "";
     const previewEl1 = $("#ruleFirstPreview");
     const previewEl2 = $("#ruleFirstPreview2");
     if (isInterval) {
@@ -1613,18 +1927,19 @@
     $$("#ruleTypeSeg button").forEach(b => b.classList.toggle("is-active", b.dataset.type === ruleType));
     $("#ruleFromField").hidden = (ruleType === "income");
     $("#ruleToField").hidden   = (ruleType === "expense");
+    updateRuleAmountUI();
   }
-  function refreshRuleSiloOptions(rule, presetSiloId) {
+  function refreshRuleAccountOptions(rule, presetAccountId) {
     const from = $("#ruleFrom"); from.innerHTML = "";
     const to   = $("#ruleTo");   to.innerHTML   = "";
-    state.silos.forEach(s => {
+    state.accounts.forEach(s => {
       from.appendChild(el("option", { value: s.id }, (s.icon ? s.icon + " " : "") + s.name));
       to  .appendChild(el("option", { value: s.id }, (s.icon ? s.icon + " " : "") + s.name));
     });
-    if (rule) { from.value = rule.fromSiloId || ""; to.value = rule.toSiloId || ""; }
+    if (rule) { from.value = rule.fromAccountId || ""; to.value = rule.toAccountId || ""; }
     else {
-      from.value = presetSiloId || (state.silos[0]?.id || "");
-      to.value = presetSiloId || (state.silos[0]?.id || "");
+      from.value = presetAccountId || (state.accounts[0]?.id || "");
+      to.value = presetAccountId || (state.accounts[0]?.id || "");
     }
   }
   function refreshRuleCategoryOptions() {
@@ -1643,17 +1958,23 @@
   }
   function bindRuleModal() {
     $$("[data-close-modal]", $("#ruleModal")).forEach(b => b.onclick = closeRuleModal);
-    $$("#ruleTypeSeg button").forEach(b => b.onclick = () => { ruleType = b.dataset.type; updateRuleTypeUI(); });
+    $$("#ruleTypeSeg button").forEach(b => b.onclick = () => { ruleType = b.dataset.type; updateRuleTypeUI(); updateRuleScheduleUI(); });
     $("#ruleSchedule").addEventListener("change", updateRuleScheduleUI);
     $("#ruleStartAt").addEventListener("input", updateRuleScheduleUI);
     $("#ruleTimeOfDay").addEventListener("input", updateRuleScheduleUI);
     $("#ruleEveryAmount").addEventListener("input", updateRuleScheduleUI);
     $("#ruleEveryUnit").addEventListener("change", updateRuleScheduleUI);
+    $("#rulePosDirection").addEventListener("change", updateRuleScheduleUI);
+    $("#rulePosN").addEventListener("input", updateRuleScheduleUI);
+    $("#rulePosWeekday").addEventListener("change", updateRuleScheduleUI);
+    $("#rulePosPeriod").addEventListener("change", updateRuleScheduleUI);
+    $("#ruleAllAmount").addEventListener("change", updateRuleAmountUI);
 
     $("#ruleForm").onsubmit = (e) => {
       e.preventDefault();
-      const amount = parseFloat($("#ruleAmount").value);
-      if (isNaN(amount) || amount <= 0) return;
+      const allMode = $("#ruleAllAmount").checked && ruleType !== "income";
+      const amount = allMode ? 0 : parseFloat($("#ruleAmount").value);
+      if (!allMode && (isNaN(amount) || amount <= 0)) return;
       const currency = $("#ruleCurrency").value;
       const schedule = $("#ruleSchedule").value || "interval";
       const everyAmt = Math.max(1, parseInt($("#ruleEveryAmount").value, 10) || 1);
@@ -1663,23 +1984,33 @@
       const categoryId = $("#ruleCategory").value || null;
       const label = $("#ruleLabel").value.trim();
       const active = $("#ruleActive").checked;
-      const fromSiloId = (ruleType === "income") ? null : $("#ruleFrom").value;
-      const toSiloId   = (ruleType === "expense") ? null : $("#ruleTo").value;
-      if (ruleType === "transfer" && fromSiloId === toSiloId) {
+      const fromAccountId = (ruleType === "income") ? null : $("#ruleFrom").value;
+      const toAccountId   = (ruleType === "expense") ? null : $("#ruleTo").value;
+      if (ruleType === "transfer" && fromAccountId === toAccountId) {
         alert("From and To must differ.");
         return;
       }
+      // Block save for invalid position schedules.
+      if (schedule === "position") {
+        const v = positionValidity(ruleFormPosition());
+        if (!v.ok) return;
+      }
+      const position = (schedule === "position") ? ruleFormPosition() : null;
+      const amountMode = allMode ? "all" : "fixed";
 
       if (editingRuleId) {
         const r = state.rules.find(x => x.id === editingRuleId);
         if (r) {
           const scheduleChanged = r.schedule !== schedule
             || r.startAt !== startAt
-            || (schedule === "interval" && (r.every?.amount !== everyAmt || r.every?.unit !== everyUnit));
+            || (schedule === "interval" && (r.every?.amount !== everyAmt || r.every?.unit !== everyUnit))
+            || (schedule === "position" && JSON.stringify(r.position || {}) !== JSON.stringify(position));
           Object.assign(r, {
-            type: ruleType, fromSiloId, toSiloId, amount, currency,
+            type: ruleType, fromAccountId, toAccountId, amount, currency,
             schedule,
             every: { amount: everyAmt, unit: everyUnit },
+            position,
+            amountMode,
             startAt, endAt, categoryId, label, active,
           });
           // If the schedule itself moved, recompute occurrenceCount from the
@@ -1703,9 +2034,11 @@
       } else {
         state.rules.push({
           id: cryptoId(),
-          type: ruleType, fromSiloId, toSiloId, amount, currency,
+          type: ruleType, fromAccountId, toAccountId, amount, currency,
           schedule,
           every: { amount: everyAmt, unit: everyUnit },
+          position,
+          amountMode,
           startAt, endAt,
           lastRunAt: null,
           occurrenceCount: 0,
@@ -1734,12 +2067,12 @@
   /* ============================================================
      SET BALANCE MODAL (quick adjustment)
      ============================================================ */
-  let setBalanceCtx = null; // { siloId, currency }
+  let setBalanceCtx = null; // { accountId, currency }
 
-  function openSetBalanceModal(silo, ccy) {
-    setBalanceCtx = { siloId: silo.id, currency: ccy };
-    const current = silo.balances[ccy] || 0;
-    $("#setBalanceSub").textContent = (silo.icon ? silo.icon + " " : "") + silo.name + " · " + ccy;
+  function openSetBalanceModal(account, ccy) {
+    setBalanceCtx = { accountId: account.id, currency: ccy };
+    const current = account.balances[ccy] || 0;
+    $("#setBalanceSub").textContent = (account.icon ? account.icon + " " : "") + account.name + " · " + ccy;
     $("#setBalanceCurrent").textContent = fmtAmount(current) + " " + ccy;
     $("#setBalanceAmount").value = current;
     $("#setBalanceNote").value = "";
@@ -1753,9 +2086,9 @@
   }
   function updateSetBalanceDelta() {
     if (!setBalanceCtx) return;
-    const silo = siloById(setBalanceCtx.siloId);
-    if (!silo) return;
-    const current = silo.balances[setBalanceCtx.currency] || 0;
+    const account = accountById(setBalanceCtx.accountId);
+    if (!account) return;
+    const current = account.balances[setBalanceCtx.currency] || 0;
     const nv = parseFloat($("#setBalanceAmount").value);
     const wrap = $("#setBalanceDelta");
     if (isNaN(nv)) { wrap.hidden = true; return; }
@@ -1773,10 +2106,10 @@
     $("#setBalanceForm").onsubmit = (e) => {
       e.preventDefault();
       if (!setBalanceCtx) return;
-      const silo = siloById(setBalanceCtx.siloId);
-      if (!silo) return;
+      const account = accountById(setBalanceCtx.accountId);
+      if (!account) return;
       const ccy = setBalanceCtx.currency;
-      const current = silo.balances[ccy] || 0;
+      const current = account.balances[ccy] || 0;
       const nv = parseFloat($("#setBalanceAmount").value);
       if (isNaN(nv)) return;
       const delta = nv - current;
@@ -1788,8 +2121,8 @@
         const tx = {
           id: cryptoId(),
           type,
-          fromSiloId: type === "expense" ? silo.id : null,
-          toSiloId:   type === "income"  ? silo.id : null,
+          fromAccountId: type === "expense" ? account.id : null,
+          toAccountId:   type === "income"  ? account.id : null,
           amount,
           currency: ccy,
           at: Date.now(),
@@ -1801,7 +2134,7 @@
           createdAt: Date.now(),
         };
         state.transactions.push(tx);
-        applyOp(tx.type, tx.fromSiloId, tx.toSiloId, tx.amount, tx.currency);
+        applyOp(tx.type, tx.fromAccountId, tx.toAccountId, tx.amount, tx.currency);
         save();
         toast(t("toast.updated"));
       }
@@ -1837,58 +2170,58 @@
   }
 
   function render() {
-    if (state.detailSiloId) { renderDetail(); return; }
+    if (state.detailAccountId) { renderDetail(); return; }
     const view = $("#view");
     view.innerHTML = "";
     $("#emptyState").hidden = true;
 
     const tab = state.activeTab;
-    if (tab === "silos")    return renderSilosTab(view);
+    if (tab === "accounts")    return renderAccountsTab(view);
     if (tab === "forecast") return renderForecastTab(view);
     if (tab === "rules")    return renderRulesTab(view);
     if (tab === "history")  return renderHistoryTab(view);
     if (tab === "stats")    return renderStatsTab(view);
   }
 
-  /* ----- Silos tab ----- */
-  function renderSilosTab(view) {
-    if (state.silos.length === 0) {
-      return showEmpty(view, "empty.title", "empty.body", "empty.cta", () => openSiloModal());
+  /* ----- Accounts tab ----- */
+  function renderAccountsTab(view) {
+    if (state.accounts.length === 0) {
+      return showEmpty(view, "empty.title", "empty.body", "empty.cta", () => openAccountModal());
     }
-    state.silos.forEach(silo => {
-      view.appendChild(renderSiloCard(silo));
+    state.accounts.forEach(account => {
+      view.appendChild(renderAccountCard(account));
     });
   }
-  function primaryCurrency(silo) {
+  function primaryCurrency(account) {
     // Currency with largest absolute current balance; fall back to first declared currency.
-    const codes = Object.keys(silo.balances).filter(c => silo.balances[c] !== 0 || true);
+    const codes = Object.keys(account.balances).filter(c => account.balances[c] !== 0 || true);
     if (codes.length === 0) return state.currencies[0]?.code || "";
-    let best = codes[0], bestAbs = Math.abs(silo.balances[codes[0]] || 0);
+    let best = codes[0], bestAbs = Math.abs(account.balances[codes[0]] || 0);
     for (const c of codes) {
-      const v = Math.abs(silo.balances[c] || 0);
+      const v = Math.abs(account.balances[c] || 0);
       if (v > bestAbs) { best = c; bestAbs = v; }
     }
     return best;
   }
-  function renderSiloCard(silo) {
-    const card = el("article", { class: "silo", style: { "--cat-color": silo.color || "#14B8A6" }, onclick: () => openDetail(silo.id) });
-    card.appendChild(el("div", { class: "silo-stripe" }));
-    const head = el("div", { class: "silo-head" });
-    head.appendChild(el("div", { class: "silo-icon" }, silo.icon || "🏦"));
-    head.appendChild(el("div", { class: "silo-title" }, silo.name));
+  function renderAccountCard(account) {
+    const card = el("article", { class: "account", style: { "--cat-color": account.color || "#14B8A6" }, onclick: () => openDetail(account.id) });
+    card.appendChild(el("div", { class: "account-stripe" }));
+    const head = el("div", { class: "account-head" });
+    head.appendChild(el("div", { class: "account-icon" }, account.icon || "🏦"));
+    head.appendChild(el("div", { class: "account-title" }, account.name));
     card.appendChild(head);
 
-    const balancesWrap = el("div", { class: "silo-balances" });
-    const codes = Object.keys(silo.balances);
+    const balancesWrap = el("div", { class: "account-balances" });
+    const codes = Object.keys(account.balances);
     if (codes.length === 0) {
-      balancesWrap.appendChild(el("div", { class: "silo-balance" },
+      balancesWrap.appendChild(el("div", { class: "account-balance" },
         el("span", { class: "amount" }, fmtAmount(0)),
         el("span", { class: "currency" }, state.currencies[0]?.code || "")
       ));
     } else {
       codes.forEach(c => {
-        const v = silo.balances[c] || 0;
-        balancesWrap.appendChild(el("div", { class: "silo-balance" + (v < 0 ? " is-negative" : "") },
+        const v = account.balances[c] || 0;
+        balancesWrap.appendChild(el("div", { class: "account-balance" + (v < 0 ? " is-negative" : "") },
           el("span", { class: "amount" }, fmtAmount(v)),
           el("span", { class: "currency" }, c)
         ));
@@ -1897,13 +2230,13 @@
     card.appendChild(balancesWrap);
 
     // Quick forecast row (primary currency)
-    const ccy = primaryCurrency(silo);
+    const ccy = primaryCurrency(account);
     const now = Date.now();
-    const w = forecastSilo(silo.id, endOfWeek(now)).projected[ccy] ?? silo.balances[ccy] ?? 0;
-    const m = forecastSilo(silo.id, endOfMonth(now)).projected[ccy] ?? silo.balances[ccy] ?? 0;
-    const y = forecastSilo(silo.id, endOfYear(now)).projected[ccy] ?? silo.balances[ccy] ?? 0;
+    const w = forecastAccount(account.id, endOfWeek(now)).projected[ccy] ?? account.balances[ccy] ?? 0;
+    const m = forecastAccount(account.id, endOfMonth(now)).projected[ccy] ?? account.balances[ccy] ?? 0;
+    const y = forecastAccount(account.id, endOfYear(now)).projected[ccy] ?? account.balances[ccy] ?? 0;
 
-    const grid = el("div", { class: "silo-forecast" });
+    const grid = el("div", { class: "account-forecast" });
     [
       { label: t("forecast.range.week"),  v: w },
       { label: t("forecast.range.month"), v: m },
@@ -1921,15 +2254,15 @@
 
   /* ----- Forecast tab ----- */
   function renderForecastTab(view) {
-    if (state.silos.length === 0) {
-      return showEmpty(view, "empty.forecastTitle", "empty.forecastBody", "empty.cta", () => openSiloModal());
+    if (state.accounts.length === 0) {
+      return showEmpty(view, "empty.forecastTitle", "empty.forecastBody", "empty.cta", () => openAccountModal());
     }
     view.appendChild(renderRangePicker());
     view.appendChild(renderForecastTotalCard());
-    state.silos.forEach(silo => view.appendChild(renderForecastCard(silo)));
+    state.accounts.forEach(account => view.appendChild(renderForecastCard(account)));
   }
-  // Aggregates each silo's forecast into a combined view. Internal transfers
-  // (between two of the user's silos) net out for in/out flow because the
+  // Aggregates each account's forecast into a combined view. Internal transfers
+  // (between two of the user's accounts) net out for in/out flow because the
   // money never leaves the household.
   function forecastTotals(target) {
     const now = Date.now();
@@ -1937,8 +2270,8 @@
     const projByCcy = {};
     const flowByCcy = {};
     const events = [];
-    state.silos.forEach(silo => {
-      const fc = forecastSilo(silo.id, target);
+    state.accounts.forEach(account => {
+      const fc = forecastAccount(account.id, target);
       for (const ccy in fc.now)       nowByCcy[ccy]  = (nowByCcy[ccy]  || 0) + fc.now[ccy];
       for (const ccy in fc.projected) projByCcy[ccy] = (projByCcy[ccy] || 0) + fc.projected[ccy];
       fc.events.forEach(ev => {
@@ -1964,10 +2297,10 @@
     const card = el("div", { class: "forecast-card forecast-card-total", style: { "--cat-color": "var(--brand-2)" } });
     card.appendChild(el("div", { class: "forecast-head" },
       el("div", { style: { display: "flex", alignItems: "center", gap: "10px" } },
-        el("span", { class: "silo-icon", style: { width: "30px", height: "30px", fontSize: "16px" } }, "Σ"),
+        el("span", { class: "account-icon", style: { width: "30px", height: "30px", fontSize: "16px" } }, "Σ"),
         el("div", { class: "forecast-title" }, t("forecast.total"))
       ),
-      el("div", { class: "forecast-sub" }, t("stats.siloCount", { n: state.silos.length }) + " · " + fmtDate(now) + " → " + fmtDate(target))
+      el("div", { class: "forecast-sub" }, t("stats.accountCount", { n: state.accounts.length }) + " · " + fmtDate(now) + " → " + fmtDate(target))
     ));
 
     const tiles = el("div", { class: "forecast-summary" });
@@ -2041,17 +2374,17 @@
     }
     return wrap;
   }
-  function renderForecastCard(silo) {
+  function renderForecastCard(account) {
     const target = rangeTargetTs(state.forecastRange, state.forecastCustom);
-    const fc = forecastSilo(silo.id, target);
+    const fc = forecastAccount(account.id, target);
     const now = Date.now();
     const days = daysBetween(now, target);
 
-    const card = el("div", { class: "forecast-card", onclick: () => openDetail(silo.id), style: { cursor: "pointer", "--cat-color": silo.color || "#14B8A6" } });
+    const card = el("div", { class: "forecast-card", onclick: () => openDetail(account.id), style: { cursor: "pointer", "--cat-color": account.color || "#14B8A6" } });
     card.appendChild(el("div", { class: "forecast-head" },
       el("div", { style: { display: "flex", alignItems: "center", gap: "10px" } },
-        el("span", { class: "silo-icon", style: { width: "30px", height: "30px", fontSize: "16px" } }, silo.icon || "🏦"),
-        el("div", { class: "forecast-title" }, silo.name)
+        el("span", { class: "account-icon", style: { width: "30px", height: "30px", fontSize: "16px" } }, account.icon || "🏦"),
+        el("div", { class: "forecast-title" }, account.name)
       ),
       el("div", { class: "forecast-sub" }, fmtDate(now) + " → " + fmtDate(target))
     ));
@@ -2082,13 +2415,13 @@
     });
     card.appendChild(tiles);
 
-    // Per-currency chart (one chart per currency present in this silo)
+    // Per-currency chart (one chart per currency present in this account)
     const chartCcys = Array.from(new Set([...Object.keys(fc.now), ...Object.keys(fc.projected)]));
     if (chartCcys.length === 0) chartCcys.push(state.currencies[0]?.code || "");
     chartCcys.forEach(ccy => {
-      const points = buildBalancePoints(silo.id, ccy, fc, now, target);
+      const points = buildBalancePoints(account.id, ccy, fc, now, target);
       card.appendChild(el("div", { class: "forecast-chart-wrap" },
-        renderChart(points, ccy, silo.color || "#14B8A6", "#E5484D")
+        renderChart(points, ccy, account.color || "#14B8A6", "#E5484D")
       ));
     });
 
@@ -2120,9 +2453,9 @@
 
     const meta = el("div", { class: "row-meta" });
     meta.appendChild(el("span", {}, scheduleLabel(rule)));
-    if (rule.type === "transfer") meta.appendChild(el("span", {}, "· " + siloName(rule.fromSiloId) + " → " + siloName(rule.toSiloId)));
-    else if (rule.type === "income") meta.appendChild(el("span", {}, "· → " + siloName(rule.toSiloId)));
-    else meta.appendChild(el("span", {}, "· " + siloName(rule.fromSiloId)));
+    if (rule.type === "transfer") meta.appendChild(el("span", {}, "· " + accountName(rule.fromAccountId) + " → " + accountName(rule.toAccountId)));
+    else if (rule.type === "income") meta.appendChild(el("span", {}, "· → " + accountName(rule.toAccountId)));
+    else meta.appendChild(el("span", {}, "· " + accountName(rule.fromAccountId)));
     // next
     const next = nthOccurrence(rule, rule.occurrenceCount || 0);
     if (next && (!rule.endAt || next <= rule.endAt) && rule.active) {
@@ -2180,9 +2513,9 @@
     body.appendChild(el("div", { class: "row-title" }, title));
     const meta = el("div", { class: "row-meta" });
     meta.appendChild(el("span", {}, fmtDateTime(tx.at)));
-    if (tx.type === "transfer") meta.appendChild(el("span", {}, "· " + siloName(tx.fromSiloId) + " → " + siloName(tx.toSiloId)));
-    else if (tx.type === "income") meta.appendChild(el("span", {}, "· → " + siloName(tx.toSiloId)));
-    else meta.appendChild(el("span", {}, "· " + siloName(tx.fromSiloId)));
+    if (tx.type === "transfer") meta.appendChild(el("span", {}, "· " + accountName(tx.fromAccountId) + " → " + accountName(tx.toAccountId)));
+    else if (tx.type === "income") meta.appendChild(el("span", {}, "· → " + accountName(tx.toAccountId)));
+    else meta.appendChild(el("span", {}, "· " + accountName(tx.fromAccountId)));
     if (tx.status === "pending") meta.appendChild(el("span", { class: "chip" }, t("history.pending")));
     if (tx.ruleId) meta.appendChild(el("span", { class: "chip" }, t("history.fromRule")));
     if (tx.categoryId) {
@@ -2201,8 +2534,8 @@
 
   /* ----- Stats tab ----- */
   function renderStatsTab(view) {
-    if (state.silos.length === 0) {
-      return showEmpty(view, "empty.statsTitle", "empty.statsBody", "empty.cta", () => openSiloModal());
+    if (state.accounts.length === 0) {
+      return showEmpty(view, "empty.statsTitle", "empty.statsBody", "empty.cta", () => openAccountModal());
     }
     const now = Date.now();
     const monthStart = startOfMonth(now);
@@ -2217,7 +2550,7 @@
       return out;
     };
     const totalByCcy = {};
-    state.silos.forEach(s => {
+    state.accounts.forEach(s => {
       for (const c in s.balances) totalByCcy[c] = (totalByCcy[c] || 0) + s.balances[c];
     });
     const monthIn  = sumByCcy(tx => tx.type === "income"  && tx.at >= monthStart);
@@ -2227,7 +2560,7 @@
 
     // Top tiles
     const grid = el("div", { class: "stats-grid" });
-    grid.appendChild(statTile(t("stats.totalBalance"), totalByCcy, t("stats.siloCount", { n: state.silos.length })));
+    grid.appendChild(statTile(t("stats.totalBalance"), totalByCcy, t("stats.accountCount", { n: state.accounts.length })));
     grid.appendChild(statTile(t("stats.thisMonthIn"),  monthIn));
     grid.appendChild(statTile(t("stats.thisMonthOut"), monthOut));
     grid.appendChild(statTile(t("stats.thisYearIn"),   yearIn));
@@ -2285,8 +2618,8 @@
   /* ============================================================
      SILO DETAIL VIEW
      ============================================================ */
-  function openDetail(siloId) {
-    state.detailSiloId = siloId;
+  function openDetail(accountId) {
+    state.detailAccountId = accountId;
     save();
     appShell.hidden = true;
     detailView.hidden = false;
@@ -2294,16 +2627,16 @@
     window.scrollTo({ top: 0 });
   }
   function closeDetail() {
-    state.detailSiloId = null;
+    state.detailAccountId = null;
     save();
     detailView.hidden = true;
     appShell.hidden = false;
     render();
   }
   function renderDetail() {
-    if (!state.detailSiloId) return;
-    const silo = siloById(state.detailSiloId);
-    if (!silo) { closeDetail(); return; }
+    if (!state.detailAccountId) return;
+    const account = accountById(state.detailAccountId);
+    if (!account) { closeDetail(); return; }
     appShell.hidden = true;
     detailView.hidden = false;
     const root = $("#detailBody");
@@ -2314,25 +2647,25 @@
     const back = el("button", { class: "back", "aria-label": "Back", html: '<svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M15.5 19l-7-7 7-7 1.4 1.4L11.3 12l5.6 5.6z"/></svg>' });
     back.onclick = closeDetail;
     head.appendChild(back);
-    head.appendChild(el("div", { class: "title" }, (silo.icon ? silo.icon + "  " : "") + silo.name));
-    const editBtn = el("button", { class: "btn btn-ghost btn-sm", onclick: () => openSiloModal(silo) }, t("detail.editSilo"));
+    head.appendChild(el("div", { class: "title" }, (account.icon ? account.icon + "  " : "") + account.name));
+    const editBtn = el("button", { class: "btn btn-ghost btn-sm", onclick: () => openAccountModal(account) }, t("detail.editAccount"));
     head.appendChild(editBtn);
     root.appendChild(head);
 
     // Balances card
-    const bal = el("div", { class: "detail-balances-card", style: { "--cat-color": silo.color || "#14B8A6" } });
+    const bal = el("div", { class: "detail-balances-card", style: { "--cat-color": account.color || "#14B8A6" } });
     bal.appendChild(el("div", { class: "head" },
       el("div", { class: "title-row" },
-        el("span", { class: "silo-icon", style: { width: "30px", height: "30px", fontSize: "16px" } }, silo.icon || "🏦"),
-        el("strong", { style: { fontSize: "16px" } }, silo.name)
+        el("span", { class: "account-icon", style: { width: "30px", height: "30px", fontSize: "16px" } }, account.icon || "🏦"),
+        el("strong", { style: { fontSize: "16px" } }, account.name)
       ),
       el("div", { class: "actions" },
-        el("button", { class: "btn btn-primary btn-sm", onclick: () => openTxModal(null, silo.id) }, t("detail.addTx")),
-        el("button", { class: "btn btn-ghost btn-sm", onclick: () => openRuleModal(null, silo.id) }, t("detail.addRule")),
+        el("button", { class: "btn btn-primary btn-sm", onclick: () => openTxModal(null, account.id) }, t("detail.addTx")),
+        el("button", { class: "btn btn-ghost btn-sm", onclick: () => openRuleModal(null, account.id) }, t("detail.addRule")),
       )
     ));
     const bg = el("div", { class: "balances-grid" });
-    const codes = Object.keys(silo.balances);
+    const codes = Object.keys(account.balances);
     const renderBalanceTile = (c, v) => el("div", { class: "balance-tile" },
       el("div", { class: "balance-tile-main" },
         el("span", { class: "amount" + (v < 0 ? " is-negative" : "") }, fmtAmount(v)),
@@ -2343,25 +2676,25 @@
         type: "button",
         title: t("balance.quickSet"),
         "aria-label": t("balance.quickSet"),
-        onclick: (e) => { e.stopPropagation(); openSetBalanceModal(silo, c); },
+        onclick: (e) => { e.stopPropagation(); openSetBalanceModal(account, c); },
         html: '<svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path fill="currentColor" d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>',
       }),
     );
     if (codes.length === 0) {
       bg.appendChild(renderBalanceTile(state.currencies[0]?.code || "", 0));
     } else codes.forEach(c => {
-      bg.appendChild(renderBalanceTile(c, silo.balances[c]));
+      bg.appendChild(renderBalanceTile(c, account.balances[c]));
     });
     bal.appendChild(bg);
     root.appendChild(bal);
 
     // Forecast card with chart
-    root.appendChild(renderDetailForecast(silo));
+    root.appendChild(renderDetailForecast(account));
 
     // Per-day allowance (primary currency)
-    const ccy = primaryCurrency(silo);
+    const ccy = primaryCurrency(account);
     const target = rangeTargetTs(state.forecastRange, state.forecastCustom);
-    const fc = forecastSilo(silo.id, target);
+    const fc = forecastAccount(account.id, target);
     const proj = fc.projected[ccy] || 0;
     const days = daysBetween(Date.now(), target);
     const allowance = proj / days;
@@ -2371,8 +2704,8 @@
       el("span", { class: "body" }, t("forecast.allowanceBody") + " " + t("forecast.daysLeft", { n: days })),
     ));
 
-    // Rules in this silo
-    const involved = state.rules.filter(r => r.fromSiloId === silo.id || r.toSiloId === silo.id);
+    // Rules in this account
+    const involved = state.rules.filter(r => r.fromAccountId === account.id || r.toAccountId === account.id);
     if (involved.length) {
       root.appendChild(el("div", { class: "section-head" }, el("span", {}, t("detail.rules")), el("span", { class: "count" }, String(involved.length))));
       involved
@@ -2380,8 +2713,8 @@
         .forEach(r => root.appendChild(renderRuleRow(r)));
     }
 
-    // Recent activity (this silo)
-    const myTxs = state.transactions.filter(tx => tx.fromSiloId === silo.id || tx.toSiloId === silo.id);
+    // Recent activity (this account)
+    const myTxs = state.transactions.filter(tx => tx.fromAccountId === account.id || tx.toAccountId === account.id);
     const upcoming = myTxs.filter(tx => tx.status === "pending").sort((a, b) => a.at - b.at);
     const recent = myTxs.filter(tx => tx.status === "applied").sort((a, b) => b.at - a.at).slice(0, 50);
     if (upcoming.length) {
@@ -2394,7 +2727,7 @@
     }
   }
 
-  function renderDetailForecast(silo) {
+  function renderDetailForecast(account) {
     const wrap = el("div", { class: "forecast-card" });
     wrap.appendChild(el("div", { class: "forecast-head" },
       el("div", {},
@@ -2430,7 +2763,7 @@
       wrap.appendChild(inp);
     }
     const target = rangeTargetTs(state.forecastRange, state.forecastCustom);
-    const fc = forecastSilo(silo.id, target);
+    const fc = forecastAccount(account.id, target);
 
     // Summary tiles per currency
     const codes = Array.from(new Set([...Object.keys(fc.now), ...Object.keys(fc.projected)]));
@@ -2452,14 +2785,14 @@
     });
     wrap.appendChild(tiles);
 
-    // Charts — one per currency in this silo
+    // Charts — one per currency in this account
     const now = Date.now();
     const chartCcys = Array.from(new Set([...Object.keys(fc.now), ...Object.keys(fc.projected)]));
     if (chartCcys.length === 0) chartCcys.push(state.currencies[0]?.code || "");
     chartCcys.forEach(ccy => {
-      const points = buildBalancePoints(silo.id, ccy, fc, now, target);
+      const points = buildBalancePoints(account.id, ccy, fc, now, target);
       wrap.appendChild(el("div", { class: "forecast-chart-wrap" },
-        renderChart(points, ccy, silo.color || "#14B8A6", "#E5484D")
+        renderChart(points, ccy, account.color || "#14B8A6", "#E5484D")
       ));
     });
 
@@ -2471,7 +2804,7 @@
   // Build the step-line points for a currency from now to target.
   // Coalesces events sharing a timestamp so internal transfers (which appear
   // twice in the aggregated event list, once per side) don't create a spike.
-  function buildBalancePoints(_siloId, ccy, fc, now, target) {
+  function buildBalancePoints(_accountId, ccy, fc, now, target) {
     const events = fc.events.filter(e => e.delta[ccy] !== undefined);
     const points = [];
     let running = fc.now[ccy] || 0;
@@ -2670,12 +3003,12 @@
       showStep(1);
     } else {
       onboarding.hidden = true;
-      if (state.detailSiloId && siloById(state.detailSiloId)) {
+      if (state.detailAccountId && accountById(state.detailAccountId)) {
         appShell.hidden = true;
         detailView.hidden = false;
         renderDetail();
       } else {
-        state.detailSiloId = null;
+        state.detailAccountId = null;
         detailView.hidden = true;
         appShell.hidden = false;
         render();
@@ -2685,7 +3018,7 @@
   function init() {
     bindOnboarding();
     bindSettings();
-    bindSiloModal();
+    bindAccountModal();
     bindTxModal();
     bindRuleModal();
     bindSetBalanceModal();
@@ -2694,23 +3027,23 @@
     $("#addBtn").onclick = () => {
       // Context-aware:
       const tab = state.activeTab;
-      if (tab === "silos")        return state.silos.length === 0 ? openSiloModal() : openChooser();
+      if (tab === "accounts")        return state.accounts.length === 0 ? openAccountModal() : openChooser();
       if (tab === "rules")        return openRuleModal();
       if (tab === "history")      return openTxModal();
       return openChooser();
     };
     $("#detailAddBtn").onclick = () => {
-      const id = state.detailSiloId;
+      const id = state.detailAccountId;
       if (id) openTxModal(null, id);
     };
-    $("#emptyCta").onclick = () => openSiloModal();
+    $("#emptyCta").onclick = () => openAccountModal();
 
     // Process any due rules/transactions on load and periodically.
     settleNow();
     setInterval(() => {
-      const before = JSON.stringify({ b: state.silos.map(s => s.balances), tx: state.transactions.length });
+      const before = JSON.stringify({ b: state.accounts.map(s => s.balances), tx: state.transactions.length });
       settleNow();
-      const after = JSON.stringify({ b: state.silos.map(s => s.balances), tx: state.transactions.length });
+      const after = JSON.stringify({ b: state.accounts.map(s => s.balances), tx: state.transactions.length });
       if (before !== after) render();
     }, 60 * 1000);
 
@@ -2722,13 +3055,13 @@
     });
     document.addEventListener("keydown", (e) => {
       if (e.key !== "Escape") return;
-      const layers = ["#iconPicker", "#chooser", "#confirmDialog", "#setBalanceModal", "#ruleModal", "#txModal", "#siloModal"];
+      const layers = ["#iconPicker", "#chooser", "#confirmDialog", "#setBalanceModal", "#ruleModal", "#txModal", "#accountModal"];
       for (const sel of layers) {
         const n = $(sel);
         if (n && !n.hidden) { n.hidden = true; return; }
       }
       if (!settingsDrawer.hidden) closeSettings();
-      else if (state.detailSiloId) closeDetail();
+      else if (state.detailAccountId) closeDetail();
     });
 
     startup();
@@ -2738,5 +3071,5 @@
   else init();
 
   /* expose for tests */
-  window.__SC__ = { state, forecastSilo, addInterval, futureRuleOccurrences, applyDueRules, applyDueTransactions };
+  window.__SC__ = { state, forecastAccount, addInterval, futureRuleOccurrences, applyDueRules, applyDueTransactions };
 })();

@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#0F1B26" />
-  <meta name="description" content="SpendersChoice — silos, recurring rules and a forecast you can trust." />
+  <meta name="description" content="SpendersChoice — accounts, recurring rules and a forecast you can trust." />
   <title>SpendersChoice</title>
   <link rel="icon" type="image/svg+xml" href="favicon.svg" />
   <link rel="apple-touch-icon" href="favicon.svg" />
@@ -27,7 +27,7 @@
 
   <main class="main">
     <nav class="tabs" role="tablist">
-      <button class="tab is-active" data-tab="silos"    role="tab" data-i18n="tab.silos">Silos</button>
+      <button class="tab is-active" data-tab="accounts"    role="tab" data-i18n="tab.accounts">Accounts</button>
       <button class="tab"           data-tab="forecast" role="tab" data-i18n="tab.forecast">Forecast</button>
       <button class="tab"           data-tab="rules"    role="tab" data-i18n="tab.rules">Rules</button>
       <button class="tab"           data-tab="history"  role="tab" data-i18n="tab.history">History</button>
@@ -39,8 +39,8 @@
     <div id="emptyState" class="empty" hidden>
       <img src="logo.svg" alt="" class="empty-logo" aria-hidden="true" />
       <h2 data-i18n="empty.title">Nothing here yet</h2>
-      <p data-i18n="empty.body">Get started by creating your first silo.</p>
-      <button class="btn btn-primary" id="emptyCta" data-i18n="empty.cta">Add a silo</button>
+      <p data-i18n="empty.body">Get started by creating your first account.</p>
+      <button class="btn btn-primary" id="emptyCta" data-i18n="empty.cta">Add an account</button>
     </div>
   </main>
 
@@ -72,7 +72,7 @@
     <section class="step is-active" data-step="1">
       <img src="logo.svg" alt="" class="onboard-logo" />
       <h1 class="onboard-title">SpendersChoice</h1>
-      <p class="onboard-sub" data-i18n="onboard.welcomeSub">Silos, recurring rules and a forecast you can trust.</p>
+      <p class="onboard-sub" data-i18n="onboard.welcomeSub">Accounts, recurring rules and a forecast you can trust.</p>
       <button class="btn btn-primary btn-block" data-next data-i18n="onboard.start">Get started</button>
     </section>
 
@@ -98,23 +98,23 @@
     </section>
 
     <section class="step" data-step="4">
-      <h2 class="step-title" data-i18n="onboard.siloTitle">Your first silo</h2>
-      <p class="step-sub" data-i18n="onboard.siloSub">A silo is anywhere you keep money — a bank account, a wallet, a savings jar.</p>
+      <h2 class="step-title" data-i18n="onboard.accountTitle">Your first account</h2>
+      <p class="step-sub" data-i18n="onboard.accountSub">An account is anywhere you keep money — a bank account, a wallet, a savings jar.</p>
       <label class="field">
-        <span data-i18n="silo.name">Name</span>
-        <input type="text" id="onboardSiloName" placeholder="Checking" maxlength="40" />
+        <span data-i18n="account.name">Name</span>
+        <input type="text" id="onboardAccountName" placeholder="Checking" maxlength="40" />
       </label>
       <label class="field">
-        <span data-i18n="silo.startingBalance">Starting balance (optional)</span>
+        <span data-i18n="account.startingBalance">Starting balance (optional)</span>
         <div class="balance-edit-row">
-          <input type="number" id="onboardSiloAmt" step="0.01" placeholder="0" />
-          <select id="onboardSiloCcy"></select>
+          <input type="number" id="onboardAccountAmt" step="0.01" placeholder="0" />
+          <select id="onboardAccountCcy"></select>
           <span></span>
         </div>
       </label>
       <div class="step-actions">
         <button class="btn btn-ghost" data-prev data-i18n="back">Back</button>
-        <button class="btn btn-primary" id="finishOnboarding" data-i18n="onboard.finish">Create silo</button>
+        <button class="btn btn-primary" id="finishOnboarding" data-i18n="onboard.finish">Create account</button>
       </div>
     </section>
 
@@ -178,42 +178,42 @@
 </aside>
 
 <!-- ============ SILO MODAL ============ -->
-<div id="siloModal" class="modal" hidden>
+<div id="accountModal" class="modal" hidden>
   <div class="modal-scrim" data-close-modal></div>
-  <div class="modal-card" role="dialog" aria-label="Silo">
+  <div class="modal-card" role="dialog" aria-label="Account">
     <header class="modal-head">
-      <h2 id="siloModalTitle" data-i18n="silo.new">New silo</h2>
+      <h2 id="accountModalTitle" data-i18n="account.new">New account</h2>
       <button class="icon-btn" data-close-modal aria-label="Close">
         <svg viewBox="0 0 24 24" width="22" height="22"><path fill="currentColor" d="M18.3 5.71 12 12.01l6.3 6.29-1.41 1.41L10.59 13.4 4.29 19.71l-1.41-1.41 6.3-6.29-6.3-6.3L4.29 4.3l6.3 6.29 6.3-6.29z"/></svg>
       </button>
     </header>
-    <form id="siloForm" class="modal-body">
+    <form id="accountForm" class="modal-body">
       <label class="field">
-        <span data-i18n="silo.name">Name</span>
-        <input type="text" id="siloName" required maxlength="40" placeholder="Checking" />
+        <span data-i18n="account.name">Name</span>
+        <input type="text" id="accountName" required maxlength="40" placeholder="Checking" />
       </label>
 
       <div class="field">
-        <span data-i18n="silo.appearance">Icon &amp; color</span>
+        <span data-i18n="account.appearance">Icon &amp; color</span>
         <div style="display:flex; gap:8px; align-items:center;">
-          <button type="button" id="siloIconBtn" class="icon-pick-btn">＋</button>
-          <input type="color" id="siloColor" value="#14B8A6" style="width:40px; height:40px; padding:0; border:1px solid var(--border); border-radius:10px; background:transparent; cursor:pointer;" />
+          <button type="button" id="accountIconBtn" class="icon-pick-btn">＋</button>
+          <input type="color" id="accountColor" value="#14B8A6" style="width:40px; height:40px; padding:0; border:1px solid var(--border); border-radius:10px; background:transparent; cursor:pointer;" />
         </div>
       </div>
 
       <div class="field">
-        <span data-i18n="silo.balances">Balances</span>
-        <div id="siloBalanceRows" class="cat-list"></div>
-        <button type="button" class="btn btn-ghost btn-block" id="addBalanceRow" data-i18n="silo.addBalance">+ Add currency</button>
+        <span data-i18n="account.balances">Balances</span>
+        <div id="accountBalanceRows" class="cat-list"></div>
+        <button type="button" class="btn btn-ghost btn-block" id="addBalanceRow" data-i18n="account.addBalance">+ Add currency</button>
       </div>
 
       <label class="field">
-        <span data-i18n="silo.notes">Notes (optional)</span>
-        <textarea id="siloNotes" rows="2" maxlength="240"></textarea>
+        <span data-i18n="account.notes">Notes (optional)</span>
+        <textarea id="accountNotes" rows="2" maxlength="240"></textarea>
       </label>
 
       <div class="modal-actions">
-        <button type="button" class="btn btn-danger btn-ghost" id="deleteSiloBtn" hidden data-i18n="silo.delete">Delete</button>
+        <button type="button" class="btn btn-danger btn-ghost" id="deleteAccountBtn" hidden data-i18n="account.delete">Delete</button>
         <span class="spacer"></span>
         <button type="button" class="btn btn-ghost" data-close-modal data-i18n="cancel">Cancel</button>
         <button type="submit" class="btn btn-primary" data-i18n="save">Save</button>
@@ -243,20 +243,25 @@
       </div>
 
       <label class="field" id="txFromField">
-        <span data-i18n="tx.from">From silo</span>
+        <span data-i18n="tx.from">From account</span>
         <select id="txFrom"></select>
       </label>
 
       <label class="field" id="txToField" hidden>
-        <span data-i18n="tx.to">To silo</span>
+        <span data-i18n="tx.to">To account</span>
         <select id="txTo"></select>
       </label>
 
       <fieldset class="field field-row">
         <legend data-i18n="tx.amount">Amount</legend>
-        <input type="number" id="txAmount" step="0.01" min="0" required />
+        <input type="number" id="txAmount" step="0.01" min="0" />
         <select id="txCurrency"></select>
       </fieldset>
+      <label class="toggle" id="txAllAmountField">
+        <input type="checkbox" id="txAllAmount" />
+        <span class="toggle-slider"></span>
+        <span class="toggle-label" data-i18n="rule.allAmount">Use the entire source balance</span>
+      </label>
 
       <label class="field">
         <span data-i18n="tx.when">When</span>
@@ -311,36 +316,31 @@
       </label>
 
       <label class="field" id="ruleFromField">
-        <span data-i18n="tx.from">From silo</span>
+        <span data-i18n="tx.from">From account</span>
         <select id="ruleFrom"></select>
       </label>
 
       <label class="field" id="ruleToField" hidden>
-        <span data-i18n="tx.to">To silo</span>
+        <span data-i18n="tx.to">To account</span>
         <select id="ruleTo"></select>
       </label>
 
       <fieldset class="field field-row">
         <legend data-i18n="tx.amount">Amount</legend>
-        <input type="number" id="ruleAmount" step="0.01" min="0" required />
+        <input type="number" id="ruleAmount" step="0.01" min="0" />
         <select id="ruleCurrency"></select>
       </fieldset>
+      <label class="toggle" id="ruleAllAmountField">
+        <input type="checkbox" id="ruleAllAmount" />
+        <span class="toggle-slider"></span>
+        <span class="toggle-label" data-i18n="rule.allAmount">Use the entire source balance</span>
+      </label>
 
       <label class="field">
         <span data-i18n="rule.schedule">Schedule</span>
         <select id="ruleSchedule">
-          <option value="interval"      data-i18n="schedule.interval">Custom interval</option>
-          <option value="weeklyMon"     data-i18n="schedule.weeklyMon">Every Monday</option>
-          <option value="weeklyTue"     data-i18n="schedule.weeklyTue">Every Tuesday</option>
-          <option value="weeklyWed"     data-i18n="schedule.weeklyWed">Every Wednesday</option>
-          <option value="weeklyThu"     data-i18n="schedule.weeklyThu">Every Thursday</option>
-          <option value="weeklyFri"     data-i18n="schedule.weeklyFri">Every Friday</option>
-          <option value="weeklySat"     data-i18n="schedule.weeklySat">Every Saturday</option>
-          <option value="weeklySun"     data-i18n="schedule.weeklySun">Every Sunday</option>
-          <option value="firstOfMonth"  data-i18n="schedule.firstOfMonth">First day of every month</option>
-          <option value="lastOfMonth"   data-i18n="schedule.lastOfMonth">Last day of every month</option>
-          <option value="firstOfYear"   data-i18n="schedule.firstOfYear">First day of every year</option>
-          <option value="lastOfYear"    data-i18n="schedule.lastOfYear">Last day of every year</option>
+          <option value="interval" data-i18n="schedule.interval">Custom interval</option>
+          <option value="position" data-i18n="schedule.position">On a specific day</option>
         </select>
       </label>
 
@@ -356,6 +356,33 @@
           <option value="year"   data-i18n="unit.year">year(s)</option>
         </select>
       </fieldset>
+
+      <div class="field" id="rulePositionField" hidden>
+        <span data-i18n="rule.position">Position</span>
+        <div class="position-grid">
+          <select id="rulePosDirection">
+            <option value="start" data-i18n="position.fromStart">From start</option>
+            <option value="end"   data-i18n="position.fromEnd">From end</option>
+          </select>
+          <input type="number" id="rulePosN" min="1" max="366" value="1" />
+          <select id="rulePosWeekday">
+            <option value=""   data-i18n="weekday.any">day</option>
+            <option value="1"  data-i18n="weekday.mon">Monday</option>
+            <option value="2"  data-i18n="weekday.tue">Tuesday</option>
+            <option value="3"  data-i18n="weekday.wed">Wednesday</option>
+            <option value="4"  data-i18n="weekday.thu">Thursday</option>
+            <option value="5"  data-i18n="weekday.fri">Friday</option>
+            <option value="6"  data-i18n="weekday.sat">Saturday</option>
+            <option value="0"  data-i18n="weekday.sun">Sunday</option>
+          </select>
+          <select id="rulePosPeriod">
+            <option value="week"  data-i18n="period.week">week</option>
+            <option value="month" selected data-i18n="period.month">month</option>
+            <option value="year"  data-i18n="period.year">year</option>
+          </select>
+        </div>
+        <small id="rulePosValidation" class="muted small" hidden></small>
+      </div>
 
       <label class="field" id="ruleStartAtField">
         <span data-i18n="rule.startAt">First occurrence</span>
@@ -478,7 +505,7 @@
     <div class="modal-body">
       <h3 class="dlg-title" data-i18n="add.title">What would you like to add?</h3>
       <div style="display:flex; flex-direction:column; gap:8px; margin: 4px 0 8px;">
-        <button type="button" class="btn btn-secondary" id="chooseSilo" data-i18n="add.silo">＋ Silo</button>
+        <button type="button" class="btn btn-secondary" id="chooseAccount" data-i18n="add.account">＋ Account</button>
         <button type="button" class="btn btn-secondary" id="chooseTx"   data-i18n="add.tx">＋ Transaction (one-time)</button>
         <button type="button" class="btn btn-secondary" id="chooseRule" data-i18n="add.rule">＋ Recurring rule</button>
       </div>

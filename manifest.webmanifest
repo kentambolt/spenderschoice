@@ -1,7 +1,7 @@
 {
   "name": "SpendersChoice",
   "short_name": "SpendersChoice",
-  "description": "Simple personal cash-flow: silos, recurring rules and a forecast you can trust.",
+  "description": "Simple personal cash-flow: accounts, recurring rules and a forecast you can trust.",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",

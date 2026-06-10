@@ -195,8 +195,8 @@ input, select, textarea { font-family: inherit; font-size: 16px; color: var(--te
   font-size: 11px;
 }
 
-/* ---------- Silo card ---------- */
-.silo {
+/* ---------- Account card ---------- */
+.account {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -209,23 +209,23 @@ input, select, textarea { font-family: inherit; font-size: 16px; color: var(--te
   cursor: pointer;
   transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease;
 }
-.silo:hover {
+.account:hover {
   box-shadow: var(--shadow-soft);
   border-color: color-mix(in srgb, var(--cat-color, var(--brand-2)) 45%, var(--border));
 }
-.silo-stripe {
+.account-stripe {
   position: absolute;
   left: 0; top: 0; bottom: 0;
   width: 4px;
   background: var(--cat-color, var(--brand-2));
 }
-.silo-head {
+.account-head {
   display: flex;
   align-items: center;
   gap: 10px;
   padding-left: 6px;
 }
-.silo-icon {
+.account-icon {
   display: inline-flex;
   width: 36px; height: 36px;
   align-items: center; justify-content: center;
@@ -235,38 +235,38 @@ input, select, textarea { font-family: inherit; font-size: 16px; color: var(--te
   font-size: 18px;
   flex-shrink: 0;
 }
-.silo-title {
+.account-title {
   flex: 1;
   font-weight: 700;
   font-size: 16px;
   letter-spacing: -0.01em;
 }
-.silo-balances {
+.account-balances {
   padding-left: 6px;
   display: flex;
   flex-direction: column;
   gap: 2px;
 }
-.silo-balance {
+.account-balance {
   display: flex;
   align-items: center;
   gap: 10px;
 }
-.silo-balance .amount {
+.account-balance .amount {
   font-variant-numeric: tabular-nums;
   font-weight: 700;
   font-size: 22px;
   letter-spacing: -0.01em;
 }
-.silo-balance .currency {
+.account-balance .currency {
   font-size: 12px;
   color: var(--text-faint);
   font-weight: 600;
   letter-spacing: 0.04em;
 }
-.silo-balance.is-negative .amount { color: var(--danger); }
+.account-balance.is-negative .amount { color: var(--danger); }
 
-.silo-meta {
+.account-meta {
   padding-left: 6px;
   display: flex;
   align-items: center;
@@ -305,8 +305,8 @@ input, select, textarea { font-family: inherit; font-size: 16px; color: var(--te
 }
 .chip.chip-cat .dot { background: var(--chip-color, var(--brand-2)); }
 
-/* ---------- Quick forecast row on silo card ---------- */
-.silo-forecast {
+/* ---------- Quick forecast row on account card ---------- */
+.account-forecast {
   margin-left: 6px;
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -315,7 +315,7 @@ input, select, textarea { font-family: inherit; font-size: 16px; color: var(--te
   border-radius: 10px;
   padding: 8px;
 }
-.silo-forecast .cell {
+.account-forecast .cell {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -323,12 +323,12 @@ input, select, textarea { font-family: inherit; font-size: 16px; color: var(--te
   font-size: 11px;
   color: var(--text-faint);
 }
-.silo-forecast .cell strong {
+.account-forecast .cell strong {
   font-size: 13px;
   color: var(--text);
   font-variant-numeric: tabular-nums;
 }
-.silo-forecast .cell .v.is-negative { color: var(--danger); }
+.account-forecast .cell .v.is-negative { color: var(--danger); }
 
 /* ---------- Big forecast view ---------- */
 .forecast-card {
@@ -479,7 +479,7 @@ input, select, textarea { font-family: inherit; font-size: 16px; color: var(--te
 .row-card.is-expense .row-amount { color: var(--danger); }
 .row-card.is-paused { opacity: 0.55; }
 
-/* ---------- Silo detail screen ---------- */
+/* ---------- Account detail screen ---------- */
 .detail {
   display: flex;
   flex-direction: column;
@@ -1043,7 +1043,7 @@ input, select, textarea { font-family: inherit; font-size: 16px; color: var(--te
 .type-seg button.is-active[data-type="expense"] { color: var(--danger); }
 .type-seg button.is-active[data-type="transfer"] { color: var(--info); }
 
-/* Balance rows inside silo modal */
+/* Balance rows inside account modal */
 .balance-edit-row {
   display: grid;
   grid-template-columns: 1fr 100px 32px;
@@ -1249,6 +1249,30 @@ input, select, textarea { font-family: inherit; font-size: 16px; color: var(--te
   font-size: 14px;
 }
 .update-banner .btn { padding: 6px 12px; font-size: 13px; }
+
+/* ---------- Position grid (rule modal) ---------- */
+.position-grid {
+  display: grid;
+  grid-template-columns: 1fr 80px 1fr 1fr;
+  gap: 6px;
+  align-items: center;
+}
+.position-grid select,
+.position-grid input[type="number"] {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px;
+  min-width: 0;
+  width: 100%;
+}
+@media (max-width: 480px) {
+  .position-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+.position-warn  { color: var(--warn) !important; }
+.position-error { color: var(--danger) !important; }
 
 /* ---------- Utility ---------- */
 [hidden] { display: none !important; }
