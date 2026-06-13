@@ -238,6 +238,8 @@
       "preview.showAllN":       "Show all {n} triggers",
       "preview.showAll":        "Show all triggers",
       "preview.collapse":       "Show fewer",
+      "occ.skip":               "Skip this trigger",
+      "occ.unskip":             "Restore this trigger",
       // Interval label singular (n = 1)
       "every1.minute":          "every minute",
       "every1.hour":            "every hour",
@@ -509,6 +511,8 @@
       "preview.showAllN":       "Vis alle {n} aktiveringer",
       "preview.showAll":        "Vis alle aktiveringer",
       "preview.collapse":       "Vis færre",
+      "occ.skip":               "Spring denne over",
+      "occ.unskip":             "Gendan denne",
       "every1.minute":          "hvert minut",
       "every1.hour":            "hver time",
       "every1.day":             "hver dag",
@@ -1099,6 +1103,7 @@
       if (r.schedule == null) r.schedule = "interval";
       normalizeLegacySchedule(r);
       if (r.amountMode == null) r.amountMode = "fixed";
+      if (!Array.isArray(r.skippedOccurrences)) r.skippedOccurrences = [];
       // v4: hoist legacy {schedule + position} into rule.pattern + rule.recurring + rule.timeOfDay.
       if (r.recurring === undefined) r.recurring = true;
       if (r.maxOccurrences === undefined) r.maxOccurrences = null;
@@ -1199,6 +1204,7 @@
     let warned = false;
     state.rules.forEach(rule => {
       if (!rule.active) return;
+      const skipped = new Set(rule.skippedOccurrences || []);
       let count = rule.occurrenceCount || 0;
       let next = nthOccurrence(rule, count);
       let safety = 0;
@@ -1207,7 +1213,7 @@
           if (!warned) { toast(t("toast.tooMany")); warned = true; }
           break;
         }
-        items.push({ at: next, kind: "rule", rule, count });
+        items.push({ at: next, kind: "rule", rule, count, isSkipped: skipped.has(next) });
         count++;
         next = nthOccurrence(rule, count);
       }
@@ -1228,24 +1234,28 @@
         ev.tx.status = "applied";
       } else {
         const r = ev.rule;
-        const amt = effectiveAmount(r);
-        if (amt > 0) {
-          applyOp(r.type, r.fromAccountId, r.toAccountId, amt, r.currency);
-          state.transactions.push({
-            id: cryptoId(),
-            type: r.type,
-            fromAccountId: r.fromAccountId,
-            toAccountId: r.toAccountId,
-            amount: amt,
-            currency: r.currency,
-            at: ev.at,
-            status: "applied",
-            categoryId: r.categoryId || null,
-            label: r.label || "",
-            ruleId: r.id,
-            amountMode: r.amountMode || "fixed",
-            createdAt: Date.now(),
-          });
+        // Honor user-skipped occurrences: advance the position counter but do
+        // not apply or log a transaction.
+        if (!ev.isSkipped) {
+          const amt = effectiveAmount(r);
+          if (amt > 0) {
+            applyOp(r.type, r.fromAccountId, r.toAccountId, amt, r.currency);
+            state.transactions.push({
+              id: cryptoId(),
+              type: r.type,
+              fromAccountId: r.fromAccountId,
+              toAccountId: r.toAccountId,
+              amount: amt,
+              currency: r.currency,
+              at: ev.at,
+              status: "applied",
+              categoryId: r.categoryId || null,
+              label: r.label || "",
+              ruleId: r.id,
+              amountMode: r.amountMode || "fixed",
+              createdAt: Date.now(),
+            });
+          }
         }
         r.lastRunAt = ev.at;
         r.occurrenceCount = ev.count + 1;
@@ -1261,21 +1271,24 @@
   /* ============================================================
      FORECAST
      ============================================================ */
-  // Future occurrences for a rule between (>now) and (<=targetTs)
+  // Future occurrences for a rule between (>now) and (<=targetTs).
+  // Skipped occurrences (in rule.skippedOccurrences) are filtered out so the
+  // forecast never includes a trigger the user told us to skip.
   function futureRuleOccurrences(rule, now, targetTs) {
     const out = [];
     if (!rule.active) return out;
+    const skipped = new Set(rule.skippedOccurrences || []);
     let count = rule.occurrenceCount || 0;
     let next = nthOccurrence(rule, count);
     let safety = 0;
-    while (next <= now) {
+    while (next != null && next <= now) {
       if (++safety > SAFETY_ITERATIONS) return out;
       count++;
       next = nthOccurrence(rule, count);
     }
-    while (next <= targetTs && (!rule.endAt || next <= rule.endAt)) {
+    while (next != null && next <= targetTs && (!rule.endAt || next <= rule.endAt)) {
       if (++safety > SAFETY_ITERATIONS) break;
-      out.push(next);
+      if (!skipped.has(next)) out.push(next);
       count++;
       next = nthOccurrence(rule, count);
     }
@@ -1378,6 +1391,50 @@
     if (range === "year")   return endOfYear(now);
     if (range === "custom" && customTs) return customTs;
     return endOfMonth(now);
+  }
+  // Start of the displayed range — used as the chart's left edge so we can
+  // show some past balance leading into today.
+  function rangeStartTs(range) {
+    const now = Date.now();
+    if (range === "week")  return startOfWeek(now);
+    if (range === "month") return startOfMonth(now);
+    if (range === "year")  return startOfYear(now);
+    // custom doesn't have a meaningful past anchor; keep chart from now.
+    return now;
+  }
+  function startOfWeek(now) {
+    const d = new Date(now);
+    const dow = d.getDay();
+    const offsetToMon = (dow === 0 ? -6 : 1 - dow);
+    d.setDate(d.getDate() + offsetToMon);
+    d.setHours(0, 0, 0, 0);
+    return d.getTime();
+  }
+
+  // "Nice" tick interval (1, 2 or 5 × 10^k) for axis labels.
+  function _niceInterval(range, targetCount) {
+    const rough = range / Math.max(1, targetCount);
+    const pow = Math.pow(10, Math.floor(Math.log10(Math.abs(rough) || 1)));
+    const norm = rough / pow;
+    let nice;
+    if (norm <= 1.5) nice = 1;
+    else if (norm <= 3) nice = 2;
+    else if (norm <= 7) nice = 5;
+    else nice = 10;
+    return nice * pow;
+  }
+  function _niceTicks(vMin, vMax, targetCount) {
+    const range = vMax - vMin;
+    if (range === 0) return [vMin];
+    const interval = _niceInterval(range, targetCount);
+    const ticks = [];
+    const start = Math.ceil(vMin / interval) * interval;
+    for (let v = start, safety = 0; v <= vMax + 1e-9 && safety < 200; v += interval, safety++) {
+      // Round to the interval to clean up float drift.
+      const r = Math.round(v / interval) * interval;
+      ticks.push(r);
+    }
+    return ticks;
   }
 
   /* ============================================================
@@ -2172,6 +2229,7 @@
     editingRuleId = rule?.id || null;
     ruleType = rule?.type || "expense";
     occurrencesExpanded = false;
+    pendingSkips = new Set(rule?.skippedOccurrences || []);
     $("#ruleModalTitle").textContent = t(rule ? "rule.edit" : "rule.new");
     updateRuleTypeUI();
     refreshRuleAccountOptions(rule, presetAccountId);
@@ -2361,14 +2419,35 @@
   let occurrencesExpanded = false;
   let occurrencesLoaded   = 0;
   let occurrencesRule     = null;
+  let pendingSkips        = new Set();   // timestamps tentatively skipped during edit
   const OCC_PAGE_SIZE = 25;
   const OCC_FOREVER_CAP = 1000;
 
   function _renderOccurrenceItem(idx, ts) {
-    return el("div", { class: "occurrence-item" },
-      el("span", { class: "occ-num" }, "#" + (idx + 1)),
-      fmtDateTimeAligned(ts),
-    );
+    const isPast = ts <= Date.now();
+    const isSkipped = pendingSkips.has(ts);
+    const cls = "occurrence-item"
+      + (isSkipped ? " is-skipped" : "")
+      + (isPast ? " is-past" : "");
+    const row = el("div", { class: cls });
+    row.appendChild(el("span", { class: "occ-num" }, "#" + (idx + 1)));
+    row.appendChild(fmtDateTimeAligned(ts));
+    if (!isPast) {
+      const btn = el("button", {
+        type: "button",
+        class: "occ-skip-btn",
+        title: t(isSkipped ? "occ.unskip" : "occ.skip"),
+        "aria-label": t(isSkipped ? "occ.unskip" : "occ.skip"),
+        onclick: (e) => {
+          e.stopPropagation();
+          if (pendingSkips.has(ts)) pendingSkips.delete(ts);
+          else pendingSkips.add(ts);
+          _updatePreview();
+        },
+      }, isSkipped ? "↶" : "✕");
+      row.appendChild(btn);
+    }
+    return row;
   }
 
   // Adds the next page of items to the list (used by both initial render and
@@ -2566,6 +2645,7 @@
             pattern, timeOfDay,
             amountMode,
             startAt, endAt, categoryId, label, active,
+            skippedOccurrences: Array.from(pendingSkips),
           });
           if (scheduleChanged) {
             const lastApplied = state.transactions
@@ -2598,6 +2678,7 @@
           lastRunAt: null,
           occurrenceCount: 0,
           categoryId, label, active,
+          skippedOccurrences: Array.from(pendingSkips),
           createdAt: Date.now(),
         });
         toast(t("toast.created"));
@@ -2904,7 +2985,7 @@
     const chartCcys = Array.from(new Set([...Object.keys(fc.now), ...Object.keys(fc.projected)]));
     if (chartCcys.length === 0) chartCcys.push(state.currencies[0]?.code || "");
     chartCcys.forEach(ccy => {
-      const points = buildBalancePoints(null, ccy, fc, now, target);
+      const points = buildBalancePoints(null, ccy, fc, now, target, rangeStartTs(state.forecastRange));
       card.appendChild(el("div", { class: "forecast-chart-wrap" },
         renderChart(points, ccy, "#14B8A6", "#E5484D")
       ));
@@ -2992,7 +3073,7 @@
     const chartCcys = Array.from(new Set([...Object.keys(fc.now), ...Object.keys(fc.projected)]));
     if (chartCcys.length === 0) chartCcys.push(state.currencies[0]?.code || "");
     chartCcys.forEach(ccy => {
-      const points = buildBalancePoints(account.id, ccy, fc, now, target);
+      const points = buildBalancePoints(account.id, ccy, fc, now, target, rangeStartTs(state.forecastRange));
       card.appendChild(el("div", { class: "forecast-chart-wrap" },
         renderChart(points, ccy, account.color || "#14B8A6", "#E5484D")
       ));
@@ -3399,7 +3480,7 @@
     const chartCcys = Array.from(new Set([...Object.keys(fc.now), ...Object.keys(fc.projected)]));
     if (chartCcys.length === 0) chartCcys.push(state.currencies[0]?.code || "");
     chartCcys.forEach(ccy => {
-      const points = buildBalancePoints(account.id, ccy, fc, now, target);
+      const points = buildBalancePoints(account.id, ccy, fc, now, target, rangeStartTs(state.forecastRange));
       wrap.appendChild(el("div", { class: "forecast-chart-wrap" },
         renderChart(points, ccy, account.color || "#14B8A6", "#E5484D")
       ));
@@ -3410,14 +3491,66 @@
 
   // For unique clip-path ids per render.
   let __chartId = 0;
-  // Build the step-line points for a currency from now to target.
-  // Coalesces events sharing a timestamp so internal transfers (which appear
-  // twice in the aggregated event list, once per side) don't create a spike.
-  function buildBalancePoints(_accountId, ccy, fc, now, target) {
-    const events = fc.events.filter(e => e.delta[ccy] !== undefined);
+  // Aggregates applied-transaction deltas affecting an account+currency in
+  // [fromTs, now], sorted by time. Pass accountId=null to sum across all
+  // accounts (used for the Total chart).
+  function _pastEventsForChart(accountId, ccy, fromTs, now) {
+    const out = [];
+    state.transactions.forEach(tx => {
+      if (tx.status !== "applied") return;
+      if (tx.at < fromTs || tx.at > now) return;
+      if (tx.currency !== ccy) return;
+      let delta = 0;
+      if (accountId == null) {
+        // Total chart — internal transfers between own accounts cancel naturally
+        // since income+expense net to zero across accounts.
+        if (tx.type === "income")  delta += tx.amount;
+        if (tx.type === "expense") delta -= tx.amount;
+        // transfers: no net change to total
+      } else {
+        if (tx.type === "income"   && tx.toAccountId === accountId)   delta += tx.amount;
+        if (tx.type === "expense"  && tx.fromAccountId === accountId) delta -= tx.amount;
+        if (tx.type === "transfer") {
+          if (tx.toAccountId === accountId)   delta += tx.amount;
+          if (tx.fromAccountId === accountId) delta -= tx.amount;
+        }
+      }
+      if (delta !== 0) out.push({ at: tx.at, delta });
+    });
+    out.sort((a, b) => a.at - b.at);
+    return out;
+  }
+
+  // Build the step-line points for a currency. Includes past data from fromTs
+  // up to now, then forward to target. Coalesces events at the same timestamp.
+  function buildBalancePoints(accountId, ccy, fc, now, target, fromTs) {
     const points = [];
-    let running = fc.now[ccy] || 0;
+    const currentBalance = fc.now[ccy] || 0;
+    const startTs = (fromTs != null && fromTs < now) ? fromTs : now;
+
+    // Past — walk current balance backward to discover the starting balance,
+    // then walk forward emitting one point per coalesced past event.
+    if (startTs < now) {
+      const past = _pastEventsForChart(accountId, ccy, startTs, now);
+      let bal = currentBalance;
+      for (let i = past.length - 1; i >= 0; i--) bal -= past[i].delta;
+      let running = bal;
+      points.push({ t: startTs, v: running });
+      let i = 0;
+      while (i < past.length) {
+        let j = i, delta = 0;
+        const at = past[i].at;
+        while (j < past.length && past[j].at === at) { delta += past[j].delta; j++; }
+        running += delta;
+        points.push({ t: at, v: running });
+        i = j;
+      }
+    }
+
+    // Now ↦ target with forecast events.
+    let running = currentBalance;
     points.push({ t: now, v: running });
+    const events = fc.events.filter(e => e.delta[ccy] !== undefined);
     let i = 0;
     while (i < events.length) {
       let j = i, delta = 0;
@@ -3435,6 +3568,8 @@
   }
   // Renders a step-line balance chart with positive segments in posColor
   // and negative segments in negColor. Always draws a dashed zero line.
+  // The chart's x axis uses preserveAspectRatio="none" so the svg stretches
+  // horizontally — text is drawn after that scale to keep readable size.
   function renderChart(points, ccy, posColor, negColor) {
     __chartId++;
     const id = __chartId;
@@ -3454,14 +3589,56 @@
     const yFor = v => H - P - (vMax === vMin ? (H - 2 * P) / 2 : ((v - vMin) / (vMax - vMin)) * (H - 2 * P));
     const y0 = yFor(0);
 
+    // ---- Horizontal gridlines at nice intervals (4–6 lines). 0 is drawn
+    //      separately below with a more prominent style.
+    const ticks = _niceTicks(vMin, vMax, 5);
+    ticks.forEach(v => {
+      if (v === 0) return;
+      const y = yFor(v);
+      if (!Number.isFinite(y) || y < 0 || y > H) return;
+      const line = document.createElementNS(svgNS, "line");
+      line.setAttribute("x1", P); line.setAttribute("x2", W - P);
+      line.setAttribute("y1", y); line.setAttribute("y2", y);
+      line.setAttribute("stroke", "currentColor");
+      line.setAttribute("stroke-opacity", "0.12");
+      line.setAttribute("stroke-width", "1");
+      line.setAttribute("vector-effect", "non-scaling-stroke");
+      svg.appendChild(line);
+      const label = document.createElementNS(svgNS, "text");
+      label.setAttribute("x", W - P - 4);
+      label.setAttribute("y", y - 3);
+      label.setAttribute("text-anchor", "end");
+      label.setAttribute("fill", "currentColor");
+      label.setAttribute("fill-opacity", "0.55");
+      label.setAttribute("font-size", "10");
+      label.textContent = fmtAmount(v);
+      svg.appendChild(label);
+    });
+
     // ---- Always-on dashed zero line ----
     const zero = document.createElementNS(svgNS, "line");
     zero.setAttribute("x1", P); zero.setAttribute("x2", W - P);
     zero.setAttribute("y1", y0); zero.setAttribute("y2", y0);
     zero.setAttribute("stroke", "currentColor");
-    zero.setAttribute("stroke-opacity", "0.3");
+    zero.setAttribute("stroke-opacity", "0.4");
     zero.setAttribute("stroke-dasharray", "3 5");
+    zero.setAttribute("vector-effect", "non-scaling-stroke");
     svg.appendChild(zero);
+
+    // ---- "Today" vertical line — dashed, semi-transparent so it doesn't
+    //      compete with the data; only drawn if today falls inside the range.
+    const todayTs = Date.now();
+    if (todayTs >= tMin && todayTs <= tMax) {
+      const tx = xFor(todayTs);
+      const today = document.createElementNS(svgNS, "line");
+      today.setAttribute("x1", tx); today.setAttribute("x2", tx);
+      today.setAttribute("y1", P / 2); today.setAttribute("y2", H - P / 2);
+      today.setAttribute("stroke", "currentColor");
+      today.setAttribute("stroke-opacity", "0.35");
+      today.setAttribute("stroke-dasharray", "4 4");
+      today.setAttribute("vector-effect", "non-scaling-stroke");
+      svg.appendChild(today);
+    }
 
     // ---- Step path ----
     let d = "";
@@ -3525,23 +3702,13 @@
     svg.appendChild(makeLine(posColor, `cAbove_${id}`));
     svg.appendChild(makeLine(negColor, `cBelow_${id}`));
 
-    // ---- Endpoint dot + label, colored by sign ----
+    // ---- Endpoint dot (the value is already shown in the "At end" tile). ----
     const last = points[points.length - 1];
     const endColor = last.v < 0 ? negColor : posColor;
     const dot = document.createElementNS(svgNS, "circle");
     dot.setAttribute("cx", xFor(last.t)); dot.setAttribute("cy", yFor(last.v));
     dot.setAttribute("r", "4"); dot.setAttribute("fill", endColor);
     svg.appendChild(dot);
-
-    const label = document.createElementNS(svgNS, "text");
-    label.setAttribute("x", xFor(last.t) - 6);
-    label.setAttribute("y", Math.max(14, yFor(last.v) - 10));
-    label.setAttribute("text-anchor", "end");
-    label.setAttribute("fill", "currentColor");
-    label.setAttribute("font-size", "12");
-    label.setAttribute("font-weight", "700");
-    label.textContent = fmtAmount(last.v) + " " + ccy;
-    svg.appendChild(label);
 
     return svg;
   }
