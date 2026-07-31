@@ -109,6 +109,24 @@
       "forecast.range.month": "This month",
       "forecast.range.year":  "This year",
       "forecast.range.custom":"Custom…",
+      "forecast.group.day":   "Day",
+      "forecast.group.week":  "Week",
+      "forecast.group.month": "Month",
+      "forecast.group.year":  "Year",
+      "forecast.range.day.all":    "Today",
+      "forecast.range.day.rest":   "Rest of today",
+      "forecast.range.day.next":   "Tomorrow",
+      "forecast.range.week.all":   "This week",
+      "forecast.range.week.rest":  "Rest of week",
+      "forecast.range.week.next":  "Next week",
+      "forecast.range.month.all":  "This month",
+      "forecast.range.month.rest": "Rest of month",
+      "forecast.range.month.next": "Next month",
+      "forecast.range.year.all":   "This year",
+      "forecast.range.year.rest":  "Rest of year",
+      "forecast.range.year.next":  "Next year",
+      "forecast.customStart": "From",
+      "forecast.customEnd":   "To",
       "forecast.current":   "Now",
       "forecast.projected": "At end",
       "forecast.allowance": "Per day, free to spend",
@@ -402,6 +420,24 @@
       "forecast.range.month": "Denne måned",
       "forecast.range.year":  "I år",
       "forecast.range.custom":"Brugerdefineret…",
+      "forecast.group.day":   "Dag",
+      "forecast.group.week":  "Uge",
+      "forecast.group.month": "Måned",
+      "forecast.group.year":  "År",
+      "forecast.range.day.all":    "I dag",
+      "forecast.range.day.rest":   "Resten af i dag",
+      "forecast.range.day.next":   "I morgen",
+      "forecast.range.week.all":   "Denne uge",
+      "forecast.range.week.rest":  "Resten af ugen",
+      "forecast.range.week.next":  "Næste uge",
+      "forecast.range.month.all":  "Denne måned",
+      "forecast.range.month.rest": "Resten af måneden",
+      "forecast.range.month.next": "Næste måned",
+      "forecast.range.year.all":   "I år",
+      "forecast.range.year.rest":  "Resten af året",
+      "forecast.range.year.next":  "Næste år",
+      "forecast.customStart": "Fra",
+      "forecast.customEnd":   "Til",
       "forecast.current":   "Nu",
       "forecast.projected": "Ved slutningen",
       "forecast.allowance": "Pr. dag, fri til brug",
@@ -654,6 +690,26 @@
     const path = document.createElementNS(svgNS, "path");
     path.setAttribute("fill", "currentColor");
     path.setAttribute("d", "M13 5l-1.4 1.4L16.2 11H4v2h12.2l-4.6 4.6L13 19l7-7z");
+    svg.appendChild(path);
+    return svg;
+  }
+
+  // Small chevron used on dropdown-toggle chips.
+  function caretDown() {
+    const svgNS = "http://www.w3.org/2000/svg";
+    const svg = document.createElementNS(svgNS, "svg");
+    svg.setAttribute("viewBox", "0 0 24 24");
+    svg.setAttribute("width", "12");
+    svg.setAttribute("height", "12");
+    svg.setAttribute("class", "caret-down");
+    svg.setAttribute("aria-hidden", "true");
+    const path = document.createElementNS(svgNS, "path");
+    path.setAttribute("fill", "none");
+    path.setAttribute("stroke", "currentColor");
+    path.setAttribute("stroke-width", "2.4");
+    path.setAttribute("stroke-linecap", "round");
+    path.setAttribute("stroke-linejoin", "round");
+    path.setAttribute("d", "M6 9l6 6 6-6");
     svg.appendChild(path);
     return svg;
   }
@@ -929,6 +985,16 @@
     return { ok: false, level: "error", key: "validation.unknownPattern" };
   }
 
+  function startOfDay(now) {
+    const d = new Date(now);
+    d.setHours(0, 0, 0, 0);
+    return d.getTime();
+  }
+  function endOfDay(now) {
+    const d = new Date(now);
+    d.setHours(23, 59, 59, 999);
+    return d.getTime();
+  }
   function endOfWeek(now) {
     // End-of-Sunday 23:59:59 of the current week (week starts Monday).
     const d = new Date(now);
@@ -1037,8 +1103,8 @@
       rules: [],
       transactions: [],
       activeTab: "accounts",
-      forecastRange: "month",     // week | month | year | custom
-      forecastCustom: null,       // timestamp
+      forecastRange: "month.all", // "<unit>.<all|rest|next>" | "custom"
+      forecastCustom: null,       // { start, end } timestamps when range is "custom"
       detailAccountId: null,         // when an account detail view is open
     };
   };
@@ -1093,7 +1159,15 @@
     loaded.rules ||= [];
     loaded.transactions ||= [];
     loaded.activeTab ||= "accounts";
-    loaded.forecastRange ||= "month";
+    // Legacy forecast ranges ("week" | "month" | "year") → "<unit>.all";
+    // legacy custom (a single end timestamp) → { start, end }.
+    if (/^(week|month|year)$/.test(loaded.forecastRange || "")) loaded.forecastRange += ".all";
+    if (loaded.forecastRange !== "custom" && !/^(day|week|month|year)\.(all|rest|next)$/.test(loaded.forecastRange || "")) {
+      loaded.forecastRange = "month.all";
+    }
+    if (typeof loaded.forecastCustom === "number") {
+      loaded.forecastCustom = { start: Date.now(), end: loaded.forecastCustom };
+    }
     if (loaded.forecastCustom === undefined) loaded.forecastCustom = null;
     loaded.detailAccountId ??= null;
     // defensive
@@ -1384,23 +1458,35 @@
     return { ...pa, atNow: all.atNow, targetTs };
   }
 
-  function rangeTargetTs(range, customTs) {
+  // Resolves a range key into {start, end} timestamps.
+  // Range keys are "<unit>.<mode>" (unit: day|week|month|year; mode:
+  // all = the whole current period, rest = now → end of period,
+  // next = the whole following period) or "custom" ({start, end} object).
+  function rangeBounds(range, custom) {
     const now = Date.now();
-    if (range === "week")   return endOfWeek(now);
-    if (range === "month")  return endOfMonth(now);
-    if (range === "year")   return endOfYear(now);
-    if (range === "custom" && customTs) return customTs;
-    return endOfMonth(now);
+    if (range === "custom") {
+      const start = custom?.start ?? now;
+      let end     = custom?.end   ?? endOfMonth(now);
+      if (end <= start) end = start + UNIT_MS.day;
+      return { start, end };
+    }
+    const [unit, mode] = String(range).split(".");
+    const startFn = { day: startOfDay, week: startOfWeek, month: startOfMonth, year: startOfYear }[unit] || startOfMonth;
+    const endFn   = { day: endOfDay,   week: endOfWeek,   month: endOfMonth,   year: endOfYear   }[unit] || endOfMonth;
+    if (mode === "next") {
+      const ref = endFn(now) + 1; // first millisecond of the following period
+      return { start: ref, end: endFn(ref) };
+    }
+    if (mode === "rest") return { start: now, end: endFn(now) };
+    return { start: startFn(now), end: endFn(now) }; // "all"
+  }
+  function rangeTargetTs(range, custom) {
+    return rangeBounds(range, custom).end;
   }
   // Start of the displayed range — used as the chart's left edge so we can
   // show some past balance leading into today.
-  function rangeStartTs(range) {
-    const now = Date.now();
-    if (range === "week")  return startOfWeek(now);
-    if (range === "month") return startOfMonth(now);
-    if (range === "year")  return startOfYear(now);
-    // custom doesn't have a meaningful past anchor; keep chart from now.
-    return now;
+  function rangeStartTs(range, custom) {
+    return rangeBounds(range, custom).start;
   }
   function startOfWeek(now) {
     const d = new Date(now);
@@ -2985,7 +3071,7 @@
     const chartCcys = Array.from(new Set([...Object.keys(fc.now), ...Object.keys(fc.projected)]));
     if (chartCcys.length === 0) chartCcys.push(state.currencies[0]?.code || "");
     chartCcys.forEach(ccy => {
-      const points = buildBalancePoints(null, ccy, fc, now, target, rangeStartTs(state.forecastRange));
+      const points = buildBalancePoints(null, ccy, fc, now, target, rangeStartTs(state.forecastRange, state.forecastCustom));
       card.appendChild(el("div", { class: "forecast-chart-wrap" },
         renderChart(points, ccy, "#14B8A6", "#E5484D")
       ));
@@ -3000,31 +3086,90 @@
         el("div", { class: "forecast-sub" }, t("forecast.subTitle")),
       )
     ));
-    const chips = el("div", { class: "range-chips" });
-    [
-      ["week",  "forecast.range.week"],
-      ["month", "forecast.range.month"],
-      ["year",  "forecast.range.year"],
-      ["custom","forecast.range.custom"],
-    ].forEach(([k, l]) => {
-      const c = el("button", { class: "range-chip" + (state.forecastRange === k ? " is-active" : "") }, t(l));
-      c.onclick = () => {
-        state.forecastRange = k;
-        if (k !== "custom") state.forecastCustom = null;
-        save();
-        render();
-      };
-      chips.appendChild(c);
+    wrap.appendChild(renderRangeControl(render));
+    return wrap;
+  }
+  // Single chip showing the current range; clicking it opens a dropdown with
+  // all/rest/next options per unit plus Custom. `rerender` redraws the view
+  // that hosts the control after a selection.
+  function renderRangeControl(rerender) {
+    const isCustom = state.forecastRange === "custom";
+    const wrap = el("div", { class: "range-picker" });
+
+    // The chip — shows the current selection (or the custom dates).
+    const chip = el("button", { type: "button", class: "range-chip is-active range-chip-toggle" });
+    if (isCustom) {
+      const b = rangeBounds("custom", state.forecastCustom);
+      chip.appendChild(document.createTextNode(fmtDate(b.start) + " "));
+      chip.appendChild(arrowRight());
+      chip.appendChild(document.createTextNode(" " + fmtDate(b.end)));
+    } else {
+      chip.appendChild(document.createTextNode(t("forecast.range." + state.forecastRange)));
+    }
+    chip.appendChild(caretDown());
+
+    // The dropdown.
+    const menu = el("div", { class: "range-menu" });
+    menu.hidden = true;
+    ["day", "week", "month", "year"].forEach(unit => {
+      const grp = el("div", { class: "range-group" },
+        el("div", { class: "range-group-title" }, t("forecast.group." + unit)));
+      ["all", "rest", "next"].forEach(mode => {
+        const key = unit + "." + mode;
+        const opt = el("button", { type: "button", class: "range-option" + (state.forecastRange === key ? " is-active" : "") },
+          t("forecast.range." + key));
+        opt.onclick = () => {
+          state.forecastRange = key;
+          state.forecastCustom = null;
+          save();
+          rerender();
+        };
+        grp.appendChild(opt);
+      });
+      menu.appendChild(grp);
     });
-    wrap.appendChild(chips);
-    if (state.forecastRange === "custom") {
-      const inp = el("input", { type: "datetime-local", value: state.forecastCustom ? toLocalInputValue(state.forecastCustom) : toLocalInputValue(endOfMonth(Date.now())) });
-      inp.onchange = (e) => {
-        state.forecastCustom = fromLocalInputValue(e.target.value);
-        save();
-        render();
+    const customOpt = el("button", { type: "button", class: "range-option range-option-custom" + (isCustom ? " is-active" : "") },
+      t("forecast.range.custom"));
+    customOpt.onclick = () => {
+      state.forecastRange = "custom";
+      state.forecastCustom ||= { start: Date.now(), end: endOfMonth(Date.now()) };
+      save();
+      rerender();
+    };
+    menu.appendChild(customOpt);
+
+    chip.onclick = (e) => {
+      e.stopPropagation();
+      if (!menu.hidden) { menu.hidden = true; return; }
+      menu.hidden = false;
+      const close = (ev) => {
+        if (wrap.contains(ev.target) && !menu.hidden) return; // keep open for inner clicks
+        menu.hidden = true;
+        document.removeEventListener("click", close);
       };
-      wrap.appendChild(inp);
+      setTimeout(() => document.addEventListener("click", close), 0);
+    };
+    wrap.appendChild(el("div", { class: "range-anchor" }, chip, menu));
+
+    // Custom range: explicit start and end inputs.
+    if (isCustom) {
+      const b = rangeBounds("custom", state.forecastCustom);
+      const startInp = el("input", { type: "datetime-local", value: toLocalInputValue(b.start) });
+      const endInp   = el("input", { type: "datetime-local", value: toLocalInputValue(b.end) });
+      const commit = () => {
+        state.forecastCustom = {
+          start: fromLocalInputValue(startInp.value) ?? b.start,
+          end:   fromLocalInputValue(endInp.value)   ?? b.end,
+        };
+        save();
+        rerender();
+      };
+      startInp.onchange = commit;
+      endInp.onchange = commit;
+      wrap.appendChild(el("div", { class: "range-custom" },
+        el("label", {}, el("span", {}, t("forecast.customStart")), startInp),
+        el("label", {}, el("span", {}, t("forecast.customEnd")), endInp),
+      ));
     }
     return wrap;
   }
@@ -3073,7 +3218,7 @@
     const chartCcys = Array.from(new Set([...Object.keys(fc.now), ...Object.keys(fc.projected)]));
     if (chartCcys.length === 0) chartCcys.push(state.currencies[0]?.code || "");
     chartCcys.forEach(ccy => {
-      const points = buildBalancePoints(account.id, ccy, fc, now, target, rangeStartTs(state.forecastRange));
+      const points = buildBalancePoints(account.id, ccy, fc, now, target, rangeStartTs(state.forecastRange, state.forecastCustom));
       card.appendChild(el("div", { class: "forecast-chart-wrap" },
         renderChart(points, ccy, account.color || "#14B8A6", "#E5484D")
       ));
@@ -3425,33 +3570,7 @@
         el("div", { class: "forecast-sub" }, t("forecast.subTitle")),
       )
     ));
-    const chips = el("div", { class: "range-chips" });
-    [
-      ["week",  "forecast.range.week"],
-      ["month", "forecast.range.month"],
-      ["year",  "forecast.range.year"],
-      ["custom","forecast.range.custom"],
-    ].forEach(([k, l]) => {
-      const c = el("button", { class: "range-chip" + (state.forecastRange === k ? " is-active" : "") }, t(l));
-      c.onclick = () => {
-        state.forecastRange = k;
-        if (k !== "custom") state.forecastCustom = null;
-        save();
-        renderDetail();
-      };
-      chips.appendChild(c);
-    });
-    wrap.appendChild(chips);
-    if (state.forecastRange === "custom") {
-      const inp = el("input", { type: "datetime-local",
-        value: state.forecastCustom ? toLocalInputValue(state.forecastCustom) : toLocalInputValue(endOfMonth(Date.now())) });
-      inp.onchange = (e) => {
-        state.forecastCustom = fromLocalInputValue(e.target.value);
-        save();
-        renderDetail();
-      };
-      wrap.appendChild(inp);
-    }
+    wrap.appendChild(renderRangeControl(renderDetail));
     const target = rangeTargetTs(state.forecastRange, state.forecastCustom);
     const fc = forecastAccount(account.id, target);
 
@@ -3480,7 +3599,7 @@
     const chartCcys = Array.from(new Set([...Object.keys(fc.now), ...Object.keys(fc.projected)]));
     if (chartCcys.length === 0) chartCcys.push(state.currencies[0]?.code || "");
     chartCcys.forEach(ccy => {
-      const points = buildBalancePoints(account.id, ccy, fc, now, target, rangeStartTs(state.forecastRange));
+      const points = buildBalancePoints(account.id, ccy, fc, now, target, rangeStartTs(state.forecastRange, state.forecastCustom));
       wrap.appendChild(el("div", { class: "forecast-chart-wrap" },
         renderChart(points, ccy, account.color || "#14B8A6", "#E5484D")
       ));

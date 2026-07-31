@@ -1359,6 +1359,100 @@ input, select, textarea { font-family: inherit; font-size: 16px; color: var(--te
   color: var(--text);
 }
 
+/* Single-chip range picker with dropdown */
+.range-picker { display: flex; flex-direction: column; gap: 10px; }
+.range-anchor { position: relative; align-self: flex-start; }
+.range-chip-toggle { display: inline-flex; align-items: center; gap: 7px; }
+.range-chip-toggle .caret-down { opacity: 0.7; flex-shrink: 0; }
+.range-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 60;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+  padding: 10px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px 14px;
+  min-width: 290px;
+}
+.range-group { display: flex; flex-direction: column; gap: 2px; }
+.range-group-title {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-faint);
+  font-weight: 700;
+  padding: 2px 8px 4px;
+}
+.range-option {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  color: var(--text-dim);
+  text-align: left;
+  padding: 7px 8px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 13px;
+  font-family: inherit;
+  white-space: nowrap;
+}
+.range-option:hover { background: var(--surface-2); color: var(--text); }
+.range-option.is-active {
+  background: color-mix(in srgb, var(--brand-2) 16%, transparent);
+  color: var(--text);
+}
+.range-option-custom {
+  grid-column: 1 / -1;
+  border-top: 1px solid var(--border);
+  border-radius: 0 0 8px 8px;
+  margin-top: 2px;
+  padding-top: 10px;
+}
+
+/* Custom range: start + end inputs */
+.range-custom {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.range-custom label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-dim);
+  min-width: 0;
+}
+.range-custom input[type="datetime-local"] {
+  width: 100%;
+  min-width: 0;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 9px 10px;
+  color: var(--text);
+  font: inherit;
+  font-size: 14px;
+  color-scheme: dark light;
+}
+[data-theme="dark"] .range-custom input[type="datetime-local"] { color-scheme: dark; }
+[data-theme="light"] .range-custom input[type="datetime-local"] { color-scheme: light; }
+.range-custom input[type="datetime-local"]:focus {
+  outline: none;
+  border-color: color-mix(in srgb, var(--brand-2) 60%, var(--border));
+}
+@media (max-width: 420px) {
+  .range-menu { grid-template-columns: 1fr; min-width: 230px; }
+  .range-custom { grid-template-columns: 1fr; }
+}
+
 /* ---------- Update banner ---------- */
 .update-banner {
   position: fixed;
