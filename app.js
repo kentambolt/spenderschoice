@@ -102,6 +102,8 @@
       "rule.delete":  "Delete",
       "rule.paused":  "Paused",
       "rule.next":    "next",
+      "filter.all":   "All",
+      "rules.filterEmpty": "No rules of this type.",
       // forecast
       "forecast.title":     "Forecast",
       "forecast.total":     "All accounts",
@@ -421,6 +423,8 @@
       "rule.delete":  "Slet",
       "rule.paused":  "Pauset",
       "rule.next":    "næste",
+      "filter.all":   "Alle",
+      "rules.filterEmpty": "Ingen regler af denne type.",
       "forecast.title":     "Prognose",
       "forecast.total":     "Alle konti",
       "forecast.range.week":  "Denne uge",
@@ -1134,6 +1138,8 @@
       forecastRange: "month.all", // "<unit>.<all|rest|next>" | "custom"
       forecastCustom: null,       // { start, end } timestamps when range is "custom"
       forecastExpanded: {},       // per-card expand state on the Forecast tab ("__total" | accountId → bool)
+      accountsExpanded: {},       // per-card expand state on the Accounts tab (accountId → bool)
+      rulesFilter: "all",         // all | income | expense | transfer
       detailAccountId: null,         // when an account detail view is open
     };
   };
@@ -1199,6 +1205,8 @@
     }
     if (loaded.forecastCustom === undefined) loaded.forecastCustom = null;
     if (!loaded.forecastExpanded || typeof loaded.forecastExpanded !== "object") loaded.forecastExpanded = {};
+    if (!loaded.accountsExpanded || typeof loaded.accountsExpanded !== "object") loaded.accountsExpanded = {};
+    if (!/^(all|income|expense|transfer)$/.test(loaded.rulesFilter || "")) loaded.rulesFilter = "all";
     loaded.detailAccountId ??= null;
     // defensive
     loaded.accounts.forEach(s => { s.balances ||= {}; });
@@ -2974,11 +2982,19 @@
     return best;
   }
   function renderAccountCard(account) {
+    const expanded = !!state.accountsExpanded[account.id]; // default collapsed
     const card = el("article", { class: "account", style: { "--cat-color": account.color || "#0D9488" }, onclick: () => openDetail(account.id) });
     card.appendChild(el("div", { class: "account-stripe" }));
-    const head = el("div", { class: "account-head" });
+    const head = el("div", { class: "account-head account-head-toggle" + (expanded ? " is-open" : "") });
     head.appendChild(el("div", { class: "account-icon" }, account.icon || "🏦"));
     head.appendChild(el("div", { class: "account-title" }, account.name));
+    head.appendChild(caretDown());
+    head.onclick = (e) => {
+      e.stopPropagation(); // header toggles; the rest of the card opens detail
+      state.accountsExpanded[account.id] = !expanded;
+      save();
+      render();
+    };
     card.appendChild(head);
 
     const balancesWrap = el("div", { class: "account-balances" });
@@ -2999,25 +3015,27 @@
     }
     card.appendChild(balancesWrap);
 
-    // Quick forecast row (primary currency)
-    const ccy = primaryCurrency(account);
-    const now = Date.now();
-    const w = forecastAccount(account.id, endOfWeek(now)).projected[ccy] ?? account.balances[ccy] ?? 0;
-    const m = forecastAccount(account.id, endOfMonth(now)).projected[ccy] ?? account.balances[ccy] ?? 0;
-    const y = forecastAccount(account.id, endOfYear(now)).projected[ccy] ?? account.balances[ccy] ?? 0;
+    // Quick forecast row (primary currency) — only when expanded.
+    if (expanded) {
+      const ccy = primaryCurrency(account);
+      const now = Date.now();
+      const w = forecastAccount(account.id, endOfWeek(now)).projected[ccy] ?? account.balances[ccy] ?? 0;
+      const m = forecastAccount(account.id, endOfMonth(now)).projected[ccy] ?? account.balances[ccy] ?? 0;
+      const y = forecastAccount(account.id, endOfYear(now)).projected[ccy] ?? account.balances[ccy] ?? 0;
 
-    const grid = el("div", { class: "account-forecast" });
-    [
-      { label: t("forecast.range.week"),  v: w },
-      { label: t("forecast.range.month"), v: m },
-      { label: t("forecast.range.year"),  v: y },
-    ].forEach(cell => {
-      grid.appendChild(el("div", { class: "cell" },
-        el("span", {}, cell.label),
-        el("strong", { class: "v" + (cell.v < 0 ? " is-negative" : "") }, fmtAmount(cell.v) + " " + ccy),
-      ));
-    });
-    card.appendChild(grid);
+      const grid = el("div", { class: "account-forecast" });
+      [
+        { label: t("forecast.range.week"),  v: w },
+        { label: t("forecast.range.month"), v: m },
+        { label: t("forecast.range.year"),  v: y },
+      ].forEach(cell => {
+        grid.appendChild(el("div", { class: "cell" },
+          el("span", {}, cell.label),
+          el("strong", { class: "v" + (cell.v < 0 ? " is-negative" : "") }, fmtAmount(cell.v) + " " + ccy),
+        ));
+      });
+      card.appendChild(grid);
+    }
 
     return card;
   }
@@ -3336,7 +3354,27 @@
     if (state.rules.length === 0) {
       return showEmpty(view, "empty.rulesTitle", "empty.rulesBody", "empty.rulesCta", () => openRuleModal());
     }
-    const sorted = [...state.rules].sort((a, b) => {
+    // Type filter chips
+    const chips = el("div", { class: "range-chips rules-filter" });
+    [
+      ["all",      "filter.all"],
+      ["income",   "type.income"],
+      ["expense",  "type.expense"],
+      ["transfer", "type.transfer"],
+    ].forEach(([k, l]) => {
+      const c = el("button", { type: "button", class: "range-chip" + ((state.rulesFilter || "all") === k ? " is-active" : "") }, t(l));
+      c.onclick = () => { state.rulesFilter = k; save(); render(); };
+      chips.appendChild(c);
+    });
+    view.appendChild(chips);
+
+    const filter = state.rulesFilter || "all";
+    const filtered = state.rules.filter(r => filter === "all" || r.type === filter);
+    if (filtered.length === 0) {
+      view.appendChild(el("div", { class: "empty" }, el("p", {}, t("rules.filterEmpty"))));
+      return;
+    }
+    const sorted = [...filtered].sort((a, b) => {
       if (!!a.active !== !!b.active) return a.active ? -1 : 1;
       const an = nthOccurrence(a, a.occurrenceCount || 0);
       const bn = nthOccurrence(b, b.occurrenceCount || 0);
@@ -3534,13 +3572,28 @@
     detailView.hidden = false;
     renderDetail();
     window.scrollTo({ top: 0 });
+    _pushDetailHistory();
   }
-  function closeDetail() {
+  // One history entry per open detail view, so the hardware/gesture back on
+  // Android (and browser back) closes the detail view instead of leaving the
+  // app. On main pages there's no extra entry — back minimizes as usual.
+  function _pushDetailHistory() {
+    if (!(history.state && history.state.scView === "detail")) {
+      try { history.pushState({ scView: "detail" }, ""); } catch (_) {}
+    }
+  }
+  function _closeDetailUI() {
     state.detailAccountId = null;
     save();
     detailView.hidden = true;
     appShell.hidden = false;
     render();
+  }
+  function closeDetail() {
+    // Go through history so in-app back and hardware back stay in sync;
+    // the popstate handler performs the actual UI close.
+    if (history.state && history.state.scView === "detail") { history.back(); return; }
+    _closeDetailUI();
   }
   function renderDetail() {
     if (!state.detailAccountId) return;
@@ -3976,6 +4029,7 @@
         appShell.hidden = true;
         detailView.hidden = false;
         renderDetail();
+        _pushDetailHistory();
       } else {
         state.detailAccountId = null;
         detailView.hidden = true;
@@ -4034,6 +4088,13 @@
       }
       if (!settingsDrawer.hidden) closeSettings();
       else if (state.detailAccountId) closeDetail();
+    });
+
+    // Hardware/gesture back (Android) and browser back: close the detail
+    // view if it's open. On main pages nothing is pushed, so the native
+    // behavior (minimize / leave) applies.
+    window.addEventListener("popstate", () => {
+      if (!detailView.hidden) _closeDetailUI();
     });
 
     startup();

@@ -246,6 +246,14 @@ input, select, textarea { font-family: inherit; font-size: 16px; color: var(--te
   gap: 10px;
   padding-left: 6px;
 }
+.account-head-toggle { cursor: pointer; user-select: none; }
+.account-head-toggle .caret-down {
+  margin-left: auto;
+  flex-shrink: 0;
+  color: var(--text-faint);
+  transition: transform .15s ease;
+}
+.account-head-toggle.is-open .caret-down { transform: rotate(180deg); }
 .account-icon {
   display: inline-flex;
   width: 36px; height: 36px;
@@ -1371,6 +1379,9 @@ input, select, textarea { font-family: inherit; font-size: 16px; color: var(--te
   border-color: var(--brand-2);
   color: var(--text);
 }
+
+/* Rules tab type filter */
+.rules-filter { padding: 2px 4px 0; }
 
 /* Sticky range-picker card on the Forecast tab */
 .range-picker-card {
