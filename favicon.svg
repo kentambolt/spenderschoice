@@ -5,7 +5,8 @@
       <stop offset="100%" stop-color="#0E9B8A"/>
     </linearGradient>
   </defs>
-  <rect width="32" height="32" rx="7" fill="#0F1B26"/>
+  <rect width="32" height="32" rx="7" fill="#FFFFFF"/>
+  <rect x="0.5" y="0.5" width="31" height="31" rx="6.5" fill="none" stroke="#E2E6E5" stroke-width="1"/>
   <!-- Coin -->
   <circle cx="16" cy="20" r="8" fill="url(#g)"/>
   <!-- S-curve inside coin -->

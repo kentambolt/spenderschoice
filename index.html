@@ -3,7 +3,9 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="theme-color" content="#0F1B26" />
+  <meta name="theme-color" content="#FAFAF9" media="(prefers-color-scheme: light)" />
+  <meta name="theme-color" content="#121514" media="(prefers-color-scheme: dark)" />
+  <meta name="theme-color" content="#FAFAF9" />
   <meta name="description" content="SpendersChoice — accounts, recurring rules and a forecast you can trust." />
   <title>SpendersChoice</title>
   <link rel="icon" type="image/svg+xml" href="favicon.svg" />
@@ -414,6 +416,12 @@
               <option value="year"           data-i18n="pattern.ofYear">of every year</option>
             </select>
           </div>
+          <label class="toggle">
+            <input type="checkbox" id="ruleDopBankDays" />
+            <span class="toggle-slider"></span>
+            <span class="toggle-label" data-i18n="pattern.bankDays">Count bank days only (Mon–Fri)</span>
+          </label>
+          <small class="muted small" id="ruleDopBankDaysHint" hidden data-i18n="pattern.bankDaysHint">Weekends are skipped. Public holidays are not taken into account.</small>
         </div>
 
         <!-- Pattern: weekday of period -->

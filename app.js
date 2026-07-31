@@ -284,6 +284,8 @@
       "pattern.weekday.label":  "Weekday position",
       "pattern.ofMonth":        "of every month",
       "pattern.ofYear":         "of every year",
+      "pattern.bankDays":       "Count bank days only (Mon–Fri)",
+      "pattern.bankDaysHint":   "Weekends are skipped. Public holidays are not taken into account.",
       "weekdays.everyDay":      "Every day",
       "weekday.short.mon":      "Mon",
       "weekday.short.tue":      "Tue",
@@ -313,6 +315,7 @@
       "period.month":           "month",
       "period.year":             "year",
       "weekday.any":            "day",
+      "weekday.bank":           "bank day",
       "weekday.mon":            "Monday",
       "weekday.tue":            "Tuesday",
       "weekday.wed":            "Wednesday",
@@ -333,6 +336,10 @@
       "validation.yearDaysMax":       "A year has at most 366 days.",
       "validation.yearWeekday53":     "Only some years have 53 of that weekday — others are skipped.",
       "validation.yearDay366":        "Day 366 only exists in leap years — others are skipped.",
+      "validation.monthBankDaysMax":  "A month has at most 23 bank days.",
+      "validation.monthBankDayShort": "Not every month has {n} bank days — months without it are skipped.",
+      "validation.yearBankDaysMax":   "A year has at most 262 bank days.",
+      "validation.yearBankDayShort":  "Only some years have {n} bank days — years without it are skipped.",
       "validation.unknownPeriod":     "Unknown period.",
     },
 
@@ -572,6 +579,8 @@
       "pattern.weekday.label":  "Ugedag-position",
       "pattern.ofMonth":        "i hver måned",
       "pattern.ofYear":         "hvert år",
+      "pattern.bankDays":       "Tæl kun bankdage (man–fre)",
+      "pattern.bankDaysHint":   "Weekender springes over. Helligdage tages ikke i betragtning.",
       "weekdays.everyDay":      "Hver dag",
       "weekday.short.mon":      "Man",
       "weekday.short.tue":      "Tir",
@@ -599,6 +608,7 @@
       "period.month":           "måned",
       "period.year":            "år",
       "weekday.any":            "dag",
+      "weekday.bank":           "bankdag",
       "weekday.mon":            "mandag",
       "weekday.tue":            "tirsdag",
       "weekday.wed":            "onsdag",
@@ -618,6 +628,10 @@
       "validation.yearDaysMax":       "Et år har højst 366 dage.",
       "validation.yearWeekday53":     "Kun nogle år har 53 af den ugedag — andre springes over.",
       "validation.yearDay366":        "Dag 366 findes kun i skudår — andre springes over.",
+      "validation.monthBankDaysMax":  "En måned har højst 23 bankdage.",
+      "validation.monthBankDayShort": "Ikke alle måneder har {n} bankdage — måneder uden springes over.",
+      "validation.yearBankDaysMax":   "Et år har højst 262 bankdage.",
+      "validation.yearBankDayShort":  "Kun nogle år har {n} bankdage — andre springes over.",
       "validation.unknownPeriod":     "Ukendt periode.",
     },
   };
@@ -836,6 +850,9 @@
     }
     if (pat.type === "dayOfPeriod") {
       let days = _daysInPeriod(pat.period, refTs, h, mi);
+      // Bank days: only count Mon–Fri, so "first/last bank day of month"
+      // lands on the first/last weekday. (Public holidays are not modelled.)
+      if (pat.bankDays) days = days.filter(d => d.getDay() >= 1 && d.getDay() <= 5);
       if (pat.fromEnd) days = days.slice().reverse();
       const pick = days[(pat.n || 1) - 1];
       return pick ? [pick.getTime()] : [];
@@ -933,7 +950,7 @@
     }
     const ordinal = ordinalLabel(pat.n || 1, !!pat.fromEnd);
     if (pat.type === "dayOfPeriod") {
-      return t("position.label", { ordinal, day: t("weekday.any"), period: t("period." + pat.period) });
+      return t("position.label", { ordinal, day: t(pat.bankDays ? "weekday.bank" : "weekday.any"), period: t("period." + pat.period) });
     }
     if (pat.type === "weekdayOfPeriod") {
       const wds = pat.weekdays || [];
@@ -960,6 +977,17 @@
     if (pat.type === "dayOfPeriod") {
       const n = pat.n;
       if (!Number.isInteger(n) || n < 1) return { ok: false, level: "error", key: "validation.positionTooSmall" };
+      if (pat.bankDays) {
+        // A month has 20–23 bank days; a year 260–262.
+        if (pat.period === "month") {
+          if (n > 23) return { ok: false, level: "error", key: "validation.monthBankDaysMax" };
+          if (n > 20) return { ok: true,  level: "warn",  key: "validation.monthBankDayShort", vars: { n } };
+        } else if (pat.period === "year") {
+          if (n > 262) return { ok: false, level: "error", key: "validation.yearBankDaysMax" };
+          if (n > 260) return { ok: true,  level: "warn",  key: "validation.yearBankDayShort", vars: { n } };
+        }
+        return { ok: true, level: null };
+      }
       if (pat.period === "month") {
         if (n > 31) return { ok: false, level: "error", key: "validation.monthDaysMax" };
         if (n > 28) return { ok: true,  level: "warn",  key: "validation.monthDayShort", vars: { n } };
@@ -1589,7 +1617,7 @@
 
       const account = {
         id: cryptoId(),
-        name, icon: "🏦", color: "#14B8A6", notes: "",
+        name, icon: "🏦", color: "#0D9488", notes: "",
         balances: {},
         createdAt: Date.now(),
       };
@@ -1681,7 +1709,7 @@
         class: "color-swatch",
         title: t("category.color"),
         "aria-label": t("category.color"),
-        style: { background: cat.color || "#14B8A6" },
+        style: { background: cat.color || "#0D9488" },
         onclick: () => openColorPicker(c => {
           cat.color = c;
           save();
@@ -1791,7 +1819,7 @@
       refreshOnboardingAccountCurrencies();
     };
     $("#settingsAddCategory").onclick = () => {
-      state.categories.push({ id: cryptoId(), name: "", color: "#14B8A6", icon: null });
+      state.categories.push({ id: cryptoId(), name: "", color: "#0D9488", icon: null });
       save();
       renderCategoryEditor($("#settingsCategories"));
       refreshTxCategoryOptions();
@@ -1891,7 +1919,7 @@
 
   // ===== Color picker =====
   const COLOR_PALETTE = [
-    "#14B8A6", "#10B981", "#06B6D4", "#0EA5E9",
+    "#0D9488", "#10B981", "#06B6D4", "#0EA5E9",
     "#3B82F6", "#6366F1", "#8B5CF6", "#A855F7",
     "#EC4899", "#EF4444", "#F97316", "#F59E0B",
     "#84CC16", "#64748B",
@@ -1990,7 +2018,7 @@
     pendingAccountIcon = account?.icon || "🏦";
     $("#accountModalTitle").textContent = t(account ? "account.edit" : "account.new");
     $("#accountName").value = account?.name || "";
-    const acctColor = account?.color || "#14B8A6";
+    const acctColor = account?.color || "#0D9488";
     $("#accountColor").style.background = acctColor;
     $("#accountColor").dataset.color = acctColor;
     $("#accountColor").onclick = () => openColorPicker(c => {
@@ -2045,7 +2073,7 @@
       e.preventDefault();
       const name = $("#accountName").value.trim();
       if (!name) return;
-      const color = $("#accountColor").dataset.color || "#14B8A6";
+      const color = $("#accountColor").dataset.color || "#0D9488";
       const notes = $("#accountNotes").value.trim();
       const balances = {};
       $$(".balance-edit-row", $("#accountBalanceRows")).forEach(row => {
@@ -2347,9 +2375,10 @@
 
     // Day-of-period defaults
     let dopDir = "first";
-    let dopN = 2, dopPeriod = "month";
+    let dopN = 2, dopPeriod = "month", dopBankDays = false;
     if (pat.type === "dayOfPeriod") {
       dopPeriod = pat.period;
+      dopBankDays = !!pat.bankDays;
       if (pat.fromEnd && (pat.n || 1) === 1) dopDir = "last";
       else if (!pat.fromEnd && (pat.n || 1) === 1) dopDir = "first";
       else if (pat.fromEnd) { dopDir = "nthLast"; dopN = pat.n || 2; }
@@ -2358,6 +2387,7 @@
     $("#ruleDopDirection").value = dopDir;
     $("#ruleDopN").value = dopN;
     $("#ruleDopPeriod").value = dopPeriod;
+    $("#ruleDopBankDays").checked = dopBankDays;
 
     // Weekday-of-period defaults
     let wdopDir = "first";
@@ -2437,7 +2467,7 @@
       const dir = $("#ruleDopDirection").value;
       const fromEnd = (dir === "last" || dir === "nthLast");
       const n = (dir === "first" || dir === "last") ? 1 : Math.max(1, parseInt($("#ruleDopN").value, 10) || 1);
-      return { type: "dayOfPeriod", period: $("#ruleDopPeriod").value, fromEnd, n };
+      return { type: "dayOfPeriod", period: $("#ruleDopPeriod").value, fromEnd, n, bankDays: $("#ruleDopBankDays").checked };
     }
     if (type === "weekdayOfPeriod") {
       const dir = $("#ruleWdopDirection").value;
@@ -2477,6 +2507,7 @@
 
     const dopDir = $("#ruleDopDirection").value;
     $("#ruleDopN").hidden = (dopDir === "first" || dopDir === "last");
+    $("#ruleDopBankDaysHint").hidden = !$("#ruleDopBankDays").checked;
     const wdopDir = $("#ruleWdopDirection").value;
     $("#ruleWdopN").hidden = (wdopDir === "first" || wdopDir === "last");
 
@@ -2679,6 +2710,7 @@
     $("#ruleDopDirection").addEventListener("change", updateRulePatternUI);
     $("#ruleDopN").addEventListener("input", updateRulePatternUI);
     $("#ruleDopPeriod").addEventListener("change", updateRulePatternUI);
+    $("#ruleDopBankDays").addEventListener("change", updateRulePatternUI);
     $("#ruleWdopDirection").addEventListener("change", updateRulePatternUI);
     $("#ruleWdopN").addEventListener("input", updateRulePatternUI);
     $("#ruleWdopPeriod").addEventListener("change", updateRulePatternUI);
@@ -2940,7 +2972,7 @@
     return best;
   }
   function renderAccountCard(account) {
-    const card = el("article", { class: "account", style: { "--cat-color": account.color || "#14B8A6" }, onclick: () => openDetail(account.id) });
+    const card = el("article", { class: "account", style: { "--cat-color": account.color || "#0D9488" }, onclick: () => openDetail(account.id) });
     card.appendChild(el("div", { class: "account-stripe" }));
     const head = el("div", { class: "account-head" });
     head.appendChild(el("div", { class: "account-icon" }, account.icon || "🏦"));
@@ -3073,7 +3105,7 @@
     chartCcys.forEach(ccy => {
       const points = buildBalancePoints(null, ccy, fc, now, target, rangeStartTs(state.forecastRange, state.forecastCustom));
       card.appendChild(el("div", { class: "forecast-chart-wrap" },
-        renderChart(points, ccy, "#14B8A6", "#E5484D")
+        renderChart(points, ccy, "#0D9488", "#E5484D")
       ));
     });
     return card;
@@ -3179,7 +3211,7 @@
     const now = Date.now();
     const days = daysBetween(now, target);
 
-    const card = el("div", { class: "forecast-card", onclick: () => openDetail(account.id), style: { cursor: "pointer", "--cat-color": account.color || "#14B8A6" } });
+    const card = el("div", { class: "forecast-card", onclick: () => openDetail(account.id), style: { cursor: "pointer", "--cat-color": account.color || "#0D9488" } });
     card.appendChild(el("div", { class: "forecast-head" },
       el("div", { style: { display: "flex", alignItems: "center", gap: "10px" } },
         el("span", { class: "account-icon", style: { width: "30px", height: "30px", fontSize: "16px" } }, account.icon || "🏦"),
@@ -3220,7 +3252,7 @@
     chartCcys.forEach(ccy => {
       const points = buildBalancePoints(account.id, ccy, fc, now, target, rangeStartTs(state.forecastRange, state.forecastCustom));
       card.appendChild(el("div", { class: "forecast-chart-wrap" },
-        renderChart(points, ccy, account.color || "#14B8A6", "#E5484D")
+        renderChart(points, ccy, account.color || "#0D9488", "#E5484D")
       ));
     });
 
@@ -3290,7 +3322,7 @@
     if (!rule.active) meta.appendChild(el("span", { class: "chip" }, t("rule.paused")));
     if (rule.categoryId) {
       const c = categoryById(rule.categoryId);
-      if (c) meta.appendChild(el("span", { class: "chip chip-cat", style: { "--chip-color": c.color || "#14B8A6" } },
+      if (c) meta.appendChild(el("span", { class: "chip chip-cat", style: { "--chip-color": c.color || "#0D9488" } },
         el("span", { class: "dot" }), (c.icon ? c.icon + " " : "") + categoryName(c)
       ));
     }
@@ -3355,7 +3387,7 @@
     }
     if (tx.categoryId) {
       const c = categoryById(tx.categoryId);
-      if (c) meta.appendChild(el("span", { class: "chip chip-cat", style: { "--chip-color": c.color || "#14B8A6" } },
+      if (c) meta.appendChild(el("span", { class: "chip chip-cat", style: { "--chip-color": c.color || "#0D9488" } },
         el("span", { class: "dot" }), (c.icon ? c.icon + " " : "") + categoryName(c)
       ));
     }
@@ -3488,7 +3520,7 @@
     root.appendChild(head);
 
     // Balances card
-    const bal = el("div", { class: "detail-balances-card", style: { "--cat-color": account.color || "#14B8A6" } });
+    const bal = el("div", { class: "detail-balances-card", style: { "--cat-color": account.color || "#0D9488" } });
     bal.appendChild(el("div", { class: "head" },
       el("div", { class: "title-row" },
         el("span", { class: "account-icon", style: { width: "30px", height: "30px", fontSize: "16px" } }, account.icon || "🏦"),
@@ -3601,7 +3633,7 @@
     chartCcys.forEach(ccy => {
       const points = buildBalancePoints(account.id, ccy, fc, now, target, rangeStartTs(state.forecastRange, state.forecastCustom));
       wrap.appendChild(el("div", { class: "forecast-chart-wrap" },
-        renderChart(points, ccy, account.color || "#14B8A6", "#E5484D")
+        renderChart(points, ccy, account.color || "#0D9488", "#E5484D")
       ));
     });
 
