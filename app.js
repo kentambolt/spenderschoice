@@ -1133,6 +1133,7 @@
       activeTab: "accounts",
       forecastRange: "month.all", // "<unit>.<all|rest|next>" | "custom"
       forecastCustom: null,       // { start, end } timestamps when range is "custom"
+      forecastExpanded: {},       // per-card expand state on the Forecast tab ("__total" | accountId → bool)
       detailAccountId: null,         // when an account detail view is open
     };
   };
@@ -1197,6 +1198,7 @@
       loaded.forecastCustom = { start: Date.now(), end: loaded.forecastCustom };
     }
     if (loaded.forecastCustom === undefined) loaded.forecastCustom = null;
+    if (!loaded.forecastExpanded || typeof loaded.forecastExpanded !== "object") loaded.forecastExpanded = {};
     loaded.detailAccountId ??= null;
     // defensive
     loaded.accounts.forEach(s => { s.balances ||= {}; });
@@ -3056,24 +3058,55 @@
     events.sort((a, b) => a.at - b.at);
     return { now: nowByCcy, projected: projByCcy, perCurrencyFlow: flowByCcy, events, atNow: now, targetTs: target };
   }
+  // Compact per-currency summary shown when a forecast card is collapsed:
+  // current balance + incoming/outgoing for the selected period.
+  function _compactFlowRows(fc) {
+    const codes = Array.from(new Set([...Object.keys(fc.now), ...Object.keys(fc.projected)]));
+    if (codes.length === 0) codes.push(state.currencies[0]?.code || "");
+    const wrap = el("div", { class: "forecast-compact" });
+    codes.forEach(ccy => {
+      const cur = fc.now[ccy] || 0;
+      const flow = fc.perCurrencyFlow[ccy] || { in: 0, out: 0 };
+      wrap.appendChild(el("div", { class: "compact-row" },
+        el("span", { class: "compact-bal" + (cur < 0 ? " is-negative" : "") }, fmtAmount(cur) + " " + ccy),
+        el("span", { class: "compact-flows" },
+          el("span", { class: "flow-val pos" }, "+" + fmtAmount(flow.in || 0)),
+          el("span", { class: "flow-val neg" }, "−" + fmtAmount(flow.out || 0)),
+        ),
+      ));
+    });
+    return wrap;
+  }
+  // Collapsible card head. `expanded` controls the caret; clicking toggles.
+  function _forecastCardHead(iconStr, title, subNode, expanded, onToggle) {
+    const head = el("div", { class: "forecast-head forecast-head-toggle" + (expanded ? " is-open" : "") },
+      el("div", { style: { display: "flex", alignItems: "center", gap: "10px", minWidth: "0" } },
+        el("span", { class: "account-icon", style: { width: "30px", height: "30px", fontSize: "16px" } }, iconStr),
+        el("div", { class: "forecast-title" }, title)
+      ),
+      el("div", { class: "forecast-head-right" }, subNode, caretDown())
+    );
+    head.onclick = onToggle;
+    return head;
+  }
   function renderForecastTotalCard() {
     const target = rangeTargetTs(state.forecastRange, state.forecastCustom);
     const fc = forecastTotals(target);
     const now = Date.now();
     const days = daysBetween(now, target);
+    const expanded = state.forecastExpanded["__total"] !== false; // default open
 
     const card = el("div", { class: "forecast-card forecast-card-total", style: { "--cat-color": "var(--brand-2)" } });
-    card.appendChild(el("div", { class: "forecast-head" },
-      el("div", { style: { display: "flex", alignItems: "center", gap: "10px" } },
-        el("span", { class: "account-icon", style: { width: "30px", height: "30px", fontSize: "16px" } }, "Σ"),
-        el("div", { class: "forecast-title" }, t("forecast.total"))
-      ),
-      el("div", { class: "forecast-sub" },
-        t("stats.accountCount", { n: state.accounts.length }) + " · " + fmtDate(now) + " ",
-        arrowRight(),
-        " " + fmtDate(target)
-      )
+    card.appendChild(_forecastCardHead("Σ", t("forecast.total"),
+      el("span", { class: "forecast-sub" }, t("stats.accountCount", { n: state.accounts.length })),
+      expanded,
+      () => { state.forecastExpanded["__total"] = !expanded; save(); render(); }
     ));
+
+    if (!expanded) {
+      card.appendChild(_compactFlowRows(fc));
+      return card;
+    }
 
     const tiles = el("div", { class: "forecast-summary" });
     const codes = Array.from(new Set([...Object.keys(fc.now), ...Object.keys(fc.projected)]));
@@ -3111,20 +3144,14 @@
     return card;
   }
   function renderRangePicker() {
-    const wrap = el("div", { class: "forecast-card" });
-    wrap.appendChild(el("div", { class: "forecast-head" },
-      el("div", {},
-        el("div", { class: "forecast-title" }, t("forecast.title")),
-        el("div", { class: "forecast-sub" }, t("forecast.subTitle")),
-      )
-    ));
-    wrap.appendChild(renderRangeControl(render));
+    const wrap = el("div", { class: "forecast-card range-picker-card" });
+    wrap.appendChild(renderRangeControl(render, { showDates: true }));
     return wrap;
   }
   // Single chip showing the current range; clicking it opens a dropdown with
   // all/rest/next options per unit plus Custom. `rerender` redraws the view
   // that hosts the control after a selection.
-  function renderRangeControl(rerender) {
+  function renderRangeControl(rerender, opts = {}) {
     const isCustom = state.forecastRange === "custom";
     const wrap = el("div", { class: "range-picker" });
 
@@ -3181,7 +3208,15 @@
       };
       setTimeout(() => document.addEventListener("click", close), 0);
     };
-    wrap.appendChild(el("div", { class: "range-anchor" }, chip, menu));
+    const row = el("div", { class: "range-anchor-row" }, el("div", { class: "range-anchor" }, chip, menu));
+    // Resolved dates for the selected range, shown once next to the chip
+    // (skipped for custom — the chip itself already shows the dates).
+    if (opts.showDates && !isCustom) {
+      const b = rangeBounds(state.forecastRange, state.forecastCustom);
+      row.appendChild(el("span", { class: "range-dates" },
+        fmtDate(b.start) + " ", arrowRight(), " " + fmtDate(b.end)));
+    }
+    wrap.appendChild(row);
 
     // Custom range: explicit start and end inputs.
     if (isCustom) {
@@ -3210,16 +3245,22 @@
     const fc = forecastAccount(account.id, target);
     const now = Date.now();
     const days = daysBetween(now, target);
+    const expanded = !!state.forecastExpanded[account.id]; // default collapsed
 
-    const card = el("div", { class: "forecast-card", onclick: () => openDetail(account.id), style: { cursor: "pointer", "--cat-color": account.color || "#0D9488" } });
-    card.appendChild(el("div", { class: "forecast-head" },
-      el("div", { style: { display: "flex", alignItems: "center", gap: "10px" } },
-        el("span", { class: "account-icon", style: { width: "30px", height: "30px", fontSize: "16px" } }, account.icon || "🏦"),
-        el("div", { class: "forecast-title" }, account.name)
-      ),
-      el("div", { class: "forecast-sub" }, fmtDate(now) + " ", arrowRight(), " " + fmtDate(target))
+    const card = el("div", { class: "forecast-card", style: { "--cat-color": account.color || "#0D9488" } });
+    card.appendChild(_forecastCardHead(account.icon || "🏦", account.name, null, expanded,
+      () => { state.forecastExpanded[account.id] = !expanded; save(); render(); }
     ));
 
+    if (!expanded) {
+      const compact = _compactFlowRows(fc);
+      compact.classList.add("is-clickable");
+      compact.onclick = () => openDetail(account.id);
+      card.appendChild(compact);
+      return card;
+    }
+
+    const body = el("div", { class: "forecast-body", onclick: () => openDetail(account.id), style: { cursor: "pointer" } });
     const tiles = el("div", { class: "forecast-summary" });
     const codes = Array.from(new Set([...Object.keys(fc.now), ...Object.keys(fc.projected)]));
     if (codes.length === 0) codes.push(state.currencies[0]?.code || "");
@@ -3244,18 +3285,19 @@
         el("span", { class: "sub" }, t("forecast.daysLeft", { n: days })),
       ));
     });
-    card.appendChild(tiles);
+    body.appendChild(tiles);
 
     // Per-currency chart (one chart per currency present in this account)
     const chartCcys = Array.from(new Set([...Object.keys(fc.now), ...Object.keys(fc.projected)]));
     if (chartCcys.length === 0) chartCcys.push(state.currencies[0]?.code || "");
     chartCcys.forEach(ccy => {
       const points = buildBalancePoints(account.id, ccy, fc, now, target, rangeStartTs(state.forecastRange, state.forecastCustom));
-      card.appendChild(el("div", { class: "forecast-chart-wrap" },
+      body.appendChild(el("div", { class: "forecast-chart-wrap" },
         renderChart(points, ccy, account.color || "#0D9488", "#E5484D")
       ));
     });
 
+    card.appendChild(body);
     return card;
   }
 

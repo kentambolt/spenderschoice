@@ -130,7 +130,8 @@ input, select, textarea { font-family: inherit; font-size: 16px; color: var(--te
     border-radius: 28px;
     border: 1px solid var(--border);
     box-shadow: var(--shadow);
-    overflow: hidden;
+    /* clip (not hidden) keeps position:sticky working inside the pane */
+    overflow: clip;
     padding-bottom: 112px;
   }
 }
@@ -1371,9 +1372,79 @@ input, select, textarea { font-family: inherit; font-size: 16px; color: var(--te
   color: var(--text);
 }
 
+/* Sticky range-picker card on the Forecast tab */
+.range-picker-card {
+  position: sticky;
+  top: calc(var(--safe-top) + 8px);
+  z-index: 40;
+  box-shadow: var(--shadow-soft);
+}
+
+/* Collapsible forecast cards */
+.forecast-head-toggle { cursor: pointer; user-select: none; }
+.forecast-head-right {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-faint);
+}
+.forecast-head-toggle .caret-down {
+  flex-shrink: 0;
+  opacity: 0.7;
+  transition: transform .15s ease;
+}
+.forecast-head-toggle.is-open .caret-down { transform: rotate(180deg); }
+.forecast-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.forecast-compact {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.forecast-compact.is-clickable { cursor: pointer; }
+.compact-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+.compact-bal {
+  font-size: 16px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.compact-bal.is-negative { color: var(--danger); }
+.compact-flows {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 12px;
+  font-size: 13px;
+}
+.compact-flows .flow-val { font-variant-numeric: tabular-nums; font-weight: 600; }
+.compact-flows .flow-val.pos { color: var(--success); }
+.compact-flows .flow-val.neg { color: var(--danger); }
+
 /* Single-chip range picker with dropdown */
 .range-picker { display: flex; flex-direction: column; gap: 10px; }
-.range-anchor { position: relative; align-self: flex-start; }
+.range-anchor { position: relative; }
+.range-anchor-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.range-dates {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+  color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+}
 .range-chip-toggle { display: inline-flex; align-items: center; gap: 7px; }
 .range-chip-toggle .caret-down { opacity: 0.7; flex-shrink: 0; }
 .range-menu {
