@@ -221,10 +221,9 @@ input, select, textarea { font-family: inherit; font-size: 16px; color: var(--te
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: 14px 14px 12px;
+  padding: 11px 14px;   /* single-row card: tighter than the old expandable one */
   display: flex;
   flex-direction: column;
-  gap: 10px;
   position: relative;
   overflow: hidden;
   cursor: pointer;
@@ -245,15 +244,19 @@ input, select, textarea { font-family: inherit; font-size: 16px; color: var(--te
   align-items: center;
   gap: 10px;
   padding-left: 6px;
+  user-select: none;
 }
-.account-head-toggle { cursor: pointer; user-select: none; }
-.account-head-toggle .caret-down {
-  margin-left: auto;
+/* Chevron pointing into the account's detail view. It nudges right on hover to
+   reinforce that the whole row navigates rather than expands. */
+.account-head .chevron-rt {
   flex-shrink: 0;
   color: var(--text-faint);
-  transition: transform .15s ease;
+  transition: transform .15s ease, color .15s ease;
 }
-.account-head-toggle.is-open .caret-down { transform: rotate(180deg); }
+.account:hover .chevron-rt {
+  transform: translateX(2px);
+  color: var(--cat-color, var(--brand-2));
+}
 .account-icon {
   display: inline-flex;
   width: 36px; height: 36px;
@@ -352,31 +355,6 @@ input, select, textarea { font-family: inherit; font-size: 16px; color: var(--te
   color: var(--chip-color, var(--brand-2));
 }
 .chip.chip-cat .dot { background: var(--chip-color, var(--brand-2)); }
-
-/* ---------- Quick forecast row on account card ---------- */
-.account-forecast {
-  margin-left: 6px;
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 6px;
-  background: var(--surface-2);
-  border-radius: 10px;
-  padding: 8px;
-}
-.account-forecast .cell {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-  font-size: 11px;
-  color: var(--text-faint);
-}
-.account-forecast .cell strong {
-  font-size: 13px;
-  color: var(--text);
-  font-variant-numeric: tabular-nums;
-}
-.account-forecast .cell .v.is-negative { color: var(--danger); }
 
 /* ---------- Big forecast view ---------- */
 .forecast-card {

@@ -732,6 +732,27 @@
     return svg;
   }
 
+  // Right-pointing chevron: marks a row that navigates somewhere on click
+  // (as opposed to caretDown(), which marks something that expands in place).
+  function chevronRight() {
+    const svgNS = "http://www.w3.org/2000/svg";
+    const svg = document.createElementNS(svgNS, "svg");
+    svg.setAttribute("viewBox", "0 0 24 24");
+    svg.setAttribute("width", "14");
+    svg.setAttribute("height", "14");
+    svg.setAttribute("class", "chevron-rt");
+    svg.setAttribute("aria-hidden", "true");
+    const path = document.createElementNS(svgNS, "path");
+    path.setAttribute("fill", "none");
+    path.setAttribute("stroke", "currentColor");
+    path.setAttribute("stroke-width", "2.4");
+    path.setAttribute("stroke-linecap", "round");
+    path.setAttribute("stroke-linejoin", "round");
+    path.setAttribute("d", "M9 6l6 6-6 6");
+    svg.appendChild(path);
+    return svg;
+  }
+
   // Adds an interval to a timestamp. For month/year units, clamps the
   // day-of-month to the last valid day of the target month so Jan 30 + 1 month
   // becomes Feb 28 (or 29 in leap years), not "Feb 30" overflowing to early March.
@@ -1138,7 +1159,6 @@
       forecastRange: "month.all", // "<unit>.<all|rest|next>" | "custom"
       forecastCustom: null,       // { start, end } timestamps when range is "custom"
       forecastExpanded: {},       // per-card expand state on the Forecast tab ("__total" | accountId → bool)
-      accountsExpanded: {},       // per-card expand state on the Accounts tab (accountId → bool)
       rulesFilter: "all",         // all | income | expense | transfer
       detailAccountId: null,         // when an account detail view is open
     };
@@ -1205,7 +1225,7 @@
     }
     if (loaded.forecastCustom === undefined) loaded.forecastCustom = null;
     if (!loaded.forecastExpanded || typeof loaded.forecastExpanded !== "object") loaded.forecastExpanded = {};
-    if (!loaded.accountsExpanded || typeof loaded.accountsExpanded !== "object") loaded.accountsExpanded = {};
+    delete loaded.accountsExpanded; // account cards no longer expand in place
     if (!/^(all|income|expense|transfer)$/.test(loaded.rulesFilter || "")) loaded.rulesFilter = "all";
     loaded.detailAccountId ??= null;
     // defensive
@@ -2981,22 +3001,18 @@
     }
     return best;
   }
+  // One compact row per account: icon, name, balance(s), and a chevron hinting
+  // that the whole row is a link into the account's detail view. Nothing expands
+  // in place — the detail view is where the numbers get unpacked.
   function renderAccountCard(account) {
-    const expanded = !!state.accountsExpanded[account.id]; // default collapsed
     const card = el("article", { class: "account", style: { "--cat-color": account.color || "#0D9488" }, onclick: () => openDetail(account.id) });
     card.appendChild(el("div", { class: "account-stripe" }));
-    const head = el("div", { class: "account-head account-head-toggle" + (expanded ? " is-open" : "") });
+    const head = el("div", { class: "account-head" });
     head.appendChild(el("div", { class: "account-icon" }, account.icon || "🏦"));
     // title attribute so a name truncated with an ellipsis is still readable on hover.
     head.appendChild(el("div", { class: "account-title", title: account.name }, account.name));
-    head.onclick = (e) => {
-      e.stopPropagation(); // header toggles; the rest of the card opens detail
-      state.accountsExpanded[account.id] = !expanded;
-      save();
-      render();
-    };
 
-    // Balances sit in the header row, right-aligned: a collapsed card stays a single
+    // Balances sit in the header row, right-aligned: the row stays a single
     // line and the amounts line up across cards so they are easy to compare.
     const balancesWrap = el("div", { class: "account-balances" });
     const codes = Object.keys(account.balances);
@@ -3015,30 +3031,8 @@
       });
     }
     head.appendChild(balancesWrap);
-    head.appendChild(caretDown());
+    head.appendChild(chevronRight());
     card.appendChild(head);
-
-    // Quick forecast row (primary currency) — only when expanded.
-    if (expanded) {
-      const ccy = primaryCurrency(account);
-      const now = Date.now();
-      const w = forecastAccount(account.id, endOfWeek(now)).projected[ccy] ?? account.balances[ccy] ?? 0;
-      const m = forecastAccount(account.id, endOfMonth(now)).projected[ccy] ?? account.balances[ccy] ?? 0;
-      const y = forecastAccount(account.id, endOfYear(now)).projected[ccy] ?? account.balances[ccy] ?? 0;
-
-      const grid = el("div", { class: "account-forecast" });
-      [
-        { label: t("forecast.range.week"),  v: w },
-        { label: t("forecast.range.month"), v: m },
-        { label: t("forecast.range.year"),  v: y },
-      ].forEach(cell => {
-        grid.appendChild(el("div", { class: "cell" },
-          el("span", {}, cell.label),
-          el("strong", { class: "v" + (cell.v < 0 ? " is-negative" : "") }, fmtAmount(cell.v) + " " + ccy),
-        ));
-      });
-      card.appendChild(grid);
-    }
 
     return card;
   }
