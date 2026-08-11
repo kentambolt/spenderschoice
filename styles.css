@@ -266,34 +266,53 @@ input, select, textarea { font-family: inherit; font-size: 16px; color: var(--te
 }
 .account-title {
   flex: 1;
+  min-width: 0;              /* allows the ellipsis below to kick in inside a flex row */
   font-weight: 700;
   font-size: 16px;
   letter-spacing: -0.01em;
+  /* A long account name is cut with "…" instead of pushing into the balance. */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
+/* Balances sit on the right of the header row. flex-shrink: 0 means the name gets
+   truncated when space runs out, never the amount. */
 .account-balances {
-  padding-left: 6px;
   display: flex;
   flex-direction: column;
+  align-items: flex-end;
   gap: 2px;
+  flex-shrink: 0;
+  margin-left: auto;
 }
 .account-balance {
   display: flex;
-  align-items: center;
-  gap: 10px;
+  align-items: baseline;
+  justify-content: flex-end;
+  gap: 6px;
 }
 .account-balance .amount {
   font-variant-numeric: tabular-nums;
   font-weight: 700;
-  font-size: 22px;
+  font-size: 19px;
   letter-spacing: -0.01em;
 }
+/* Fixed-width currency code keeps the amounts' right edges lined up from card to
+   card, so identical magnitudes stack under each other. */
 .account-balance .currency {
   font-size: 12px;
   color: var(--text-faint);
   font-weight: 600;
   letter-spacing: 0.04em;
+  min-width: 2.6em;
+  text-align: left;
+  flex-shrink: 0;
 }
 .account-balance.is-negative .amount { color: var(--danger); }
+
+@media (max-width: 400px) {
+  .account-balance .amount { font-size: 17px; }
+}
 
 .account-meta {
   padding-left: 6px;

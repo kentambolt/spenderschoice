@@ -2987,16 +2987,17 @@
     card.appendChild(el("div", { class: "account-stripe" }));
     const head = el("div", { class: "account-head account-head-toggle" + (expanded ? " is-open" : "") });
     head.appendChild(el("div", { class: "account-icon" }, account.icon || "🏦"));
-    head.appendChild(el("div", { class: "account-title" }, account.name));
-    head.appendChild(caretDown());
+    // title attribute so a name truncated with an ellipsis is still readable on hover.
+    head.appendChild(el("div", { class: "account-title", title: account.name }, account.name));
     head.onclick = (e) => {
       e.stopPropagation(); // header toggles; the rest of the card opens detail
       state.accountsExpanded[account.id] = !expanded;
       save();
       render();
     };
-    card.appendChild(head);
 
+    // Balances sit in the header row, right-aligned: a collapsed card stays a single
+    // line and the amounts line up across cards so they are easy to compare.
     const balancesWrap = el("div", { class: "account-balances" });
     const codes = Object.keys(account.balances);
     if (codes.length === 0) {
@@ -3013,7 +3014,9 @@
         ));
       });
     }
-    card.appendChild(balancesWrap);
+    head.appendChild(balancesWrap);
+    head.appendChild(caretDown());
+    card.appendChild(head);
 
     // Quick forecast row (primary currency) — only when expanded.
     if (expanded) {
